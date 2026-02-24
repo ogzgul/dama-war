@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dama War — Support</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117; --sf: #161b22; --bd: #30363d;
+      --gold: #d4a843; --text: #e6edf3; --muted: #8b949e;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg); color: var(--text);
+      line-height: 1.7; padding: 0 16px;
+    }
+    .hero {
+      text-align: center; padding: 64px 16px 40px;
+      border-bottom: 1px solid var(--bd);
+    }
+    .logo { font-size: 48px; margin-bottom: 12px; }
+    .hero h1 {
+      font-size: clamp(28px, 5vw, 42px); font-weight: 800;
+      background: linear-gradient(135deg, #f5d78e, var(--gold), #b8862a);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 8px;
+    }
+    .hero p { color: var(--muted); font-size: 15px; }
+    .nav {
+      display: flex; justify-content: center; gap: 24px;
+      padding: 20px; border-bottom: 1px solid var(--bd);
+      flex-wrap: wrap;
+    }
+    .nav a {
+      color: var(--muted); text-decoration: none; font-size: 14px;
+      font-weight: 500; transition: color .2s;
+    }
+    .nav a:hover, .nav a.active { color: var(--gold); }
+    .container { max-width: 720px; margin: 0 auto; padding: 48px 0 80px; }
+    h2 {
+      font-size: 20px; color: var(--gold); margin: 36px 0 14px;
+      padding-bottom: 8px; border-bottom: 1px solid var(--bd);
+    }
+    h2:first-child { margin-top: 0; }
+    p { color: #c9d1d9; margin-bottom: 14px; }
+    .faq { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+    .faq-item {
+      background: var(--sf); border: 1px solid var(--bd);
+      border-radius: 12px; padding: 18px 20px;
+    }
+    .faq-item strong { color: var(--text); display: block; margin-bottom: 8px; font-size: 15px; }
+    .faq-item p { color: var(--muted); margin-bottom: 0; font-size: 14px; }
+    .contact-card {
+      background: rgba(212,168,67,.07); border: 1px solid rgba(212,168,67,.3);
+      border-radius: 14px; padding: 28px 32px; text-align: center; margin-top: 32px;
+    }
+    .contact-card h3 { color: var(--gold); font-size: 18px; margin-bottom: 10px; }
+    .contact-card p { color: var(--muted); font-size: 14px; margin-bottom: 16px; }
+    .contact-card a {
+      display: inline-block; background: var(--gold); color: #1a0f00;
+      font-weight: 700; padding: 11px 28px; border-radius: 10px;
+      text-decoration: none; font-size: 14px; transition: filter .2s;
+    }
+    .contact-card a:hover { filter: brightness(1.1); }
+    .rules {
+      background: var(--sf); border: 1px solid var(--bd);
+      border-radius: 12px; padding: 20px 24px;
+    }
+    .rules li { margin-bottom: 10px; color: #c9d1d9; }
+    .rules li strong { color: var(--gold); }
+    footer {
+      text-align: center; padding: 24px 16px;
+      border-top: 1px solid var(--bd); color: var(--muted); font-size: 13px;
+    }
+    footer a { color: var(--gold); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="logo">♟️</div>
+  <h1>DAMA WAR</h1>
+  <p>Turkish Checkers · Mobile Game</p>
+</div>
+
+<nav class="nav">
+  <a href="index.html">Privacy Policy</a>
+  <a href="support.html" class="active">Support</a>
+</nav>
+
+<div class="container">
+
+  <h2>Game Rules — Turkish Dama</h2>
+  <div class="rules">
+    <ul>
+      <li><strong>Movement:</strong> Regular pieces move forward and sideways (3 directions). They cannot move backward.</li>
+      <li><strong>Captures:</strong> All pieces can capture in all 4 directions (including backward). Captures are mandatory.</li>
+      <li><strong>Chain captures:</strong> If you can capture multiple pieces in a sequence, you must complete the longest possible chain.</li>
+      <li><strong>Promotion:</strong> When a piece reaches the last row, it becomes a <strong>King (♛)</strong>. Promotion stops a chain capture.</li>
+      <li><strong>Kings:</strong> Kings move and capture any distance along a row or column (like a rook in chess).</li>
+      <li><strong>Winning:</strong> Capture all opponent pieces, or leave them with no valid moves.</li>
+    </ul>
+  </div>
+
+  <h2>How to Play Online</h2>
+  <div class="faq">
+    <div class="faq-item">
+      <strong>How do I start an online game?</strong>
+      <p>Tap "Online Multiplayer" → "Create Room" → "Generate Room". Share the 6-character code with your friend.</p>
+    </div>
+    <div class="faq-item">
+      <strong>How does my friend join?</strong>
+      <p>They open the app → "Online Multiplayer" → "Join Room" → enter the 6-character code → "Join Room".</p>
+    </div>
+    <div class="faq-item">
+      <strong>Do we need to be on the same network?</strong>
+      <p>No. Both players just need an internet connection (WiFi or cellular). You can play from different cities or countries.</p>
+    </div>
+    <div class="faq-item">
+      <strong>The connection timed out. What do I do?</strong>
+      <p>Generate a new room code. Make sure both players have an active internet connection.</p>
+    </div>
+    <div class="faq-item">
+      <strong>My opponent disconnected. What happens?</strong>
+      <p>A "Disconnected" dialog will appear. Tap "Back to Menu" and start a new game.</p>
+    </div>
+  </div>
+
+  <h2>Frequently Asked Questions</h2>
+  <div class="faq">
+    <div class="faq-item">
+      <strong>How do I beat the Hard computer opponent?</strong>
+      <p>Control the center of the board, protect your pieces from chain captures, and try to promote pieces to Kings as quickly as possible.</p>
+    </div>
+    <div class="faq-item">
+      <strong>Does the computer opponent use an internet connection or AI service?</strong>
+      <p>No. The computer opponent is a classical minimax algorithm that runs entirely on your device. It requires no internet connection and does not connect to any external AI service, server, or API. It is the same type of algorithm used in chess programs since the 1950s.</p>
+    </div>
+    <div class="faq-item">
+      <strong>Why am I forced to capture?</strong>
+      <p>In Turkish Dama, captures are mandatory. If you have a capture available, you must take it.</p>
+    </div>
+    <div class="faq-item">
+      <strong>What does the red highlight mean?</strong>
+      <p>Red highlighted squares show capture moves (mandatory). Green squares show regular moves.</p>
+    </div>
+    <div class="faq-item">
+      <strong>Can I play on iPad?</strong>
+      <p>Yes! Dama War supports iPhone and iPad.</p>
+    </div>
+  </div>
+
+  <div class="contact-card">
+    <h3>Need more help?</h3>
+    <p>Send us an email and we'll get back to you as soon as possible.</p>
+    <a href="mailto:oguz_gul216@hotmail.com">Contact Support</a>
+  </div>
+
+</div>
+
+<footer>
+  © 2026 Oğuz GÜL · <a href="index.html">Privacy Policy</a> · <a href="support.html">Support</a>
+</footer>
+
+</body>
+</html>
