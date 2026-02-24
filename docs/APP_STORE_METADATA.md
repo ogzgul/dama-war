@@ -29,11 +29,11 @@ HOW TO PLAY ONLINE
 Create a room and share the 6-character code with your friend. They enter the code to connect — no account needed, no registration, just play!
 
 TURKISH DAMA RULES
-Turkish Dama is played on an 8×8 board with unique rules:
+Turkish Dama is played on an 8x8 board with unique rules:
 • Pieces move forward and sideways (3 directions)
 • Captures are possible in all 4 directions — including backward
 • Chain captures are mandatory — always take the longest capture chain
-• Promote a piece to King (♛) by reaching the last row
+• Promote a piece to King by reaching the last row
 • Kings move any distance along rows and columns
 
 FEATURES
@@ -42,7 +42,7 @@ FEATURES
 • Real-time online multiplayer via P2P connection
 • No account or login required
 • No ads, no in-app purchases — completely free
-• Works offline for local and AI modes
+• Works offline for local and computer opponent modes
 
 Master the ancient Turkish board game and become a Dama champion!
 ```
@@ -64,12 +64,12 @@ ONLINE NASIL OYNANIR
 Oda oluştur ve 6 haneli kodu arkadaşına gönder. Arkadaşın kodu girerek bağlanır — hesap gerekmiyor, kayıt yok, sadece oyna!
 
 TÜRK DAMA KURALLARI
-Türk Dama, 8×8 tahtada eşsiz kurallarla oynanır:
+Türk Dama, 8x8 tahtada eşsiz kurallarla oynanır:
 • Taşlar ileri ve yana (3 yön) hareket eder
 • Yeme 4 yönde de mümkün — geriye doğru da
 • Çok yemeli hamleler zorunludur — en uzun zinciri seç
-• Son sıraya ulaşan taş Şah (♛) olur
-• Şahlar satranç kalesi gibi istediği kadar ilerler
+• Son sıraya ulaşan taş Sah olur
+• Sahlar satranç kalesi gibi istediği kadar ilerler
 
 ÖZELLİKLER
 • Altın vurgulu koyu tema
@@ -77,7 +77,7 @@ Türk Dama, 8×8 tahtada eşsiz kurallarla oynanır:
 • P2P bağlantı ile gerçek zamanlı online oyun
 • Hesap veya giriş gerekmez
 • Reklam yok, uygulama içi satın alma yok — tamamen ücretsiz
-• Yerel ve AI modlarda internet gerektirmez
+• Yerel ve bilgisayar modlarında internet gerektirmez
 ```
 
 ---

@@ -61,7 +61,7 @@ TURKISH DAMA RULES
 • Pieces move forward and sideways
 • Captures are mandatory in all 4 directions
 • Chain captures required — longest chain wins
-• Kings (♛) slide any distance
+• Kings slide any distance
 • Classic Turkish board game rules
 
 FEATURES
@@ -70,7 +70,7 @@ FEATURES
 • Real-time P2P online multiplayer
 • No account or login required
 • No ads, no in-app purchases — completely free
-• Offline play for local and AI modes
+• Offline play for local and computer opponent modes
 ```
 
 **Keywords (100 karakter):**

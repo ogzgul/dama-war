@@ -1,0 +1,20 @@
+{
+  "appId": "com.ogzgul.dama",
+  "appName": "Dama",
+  "webDir": "www",
+  "ios": {
+    "contentInset": "automatic",
+    "allowsLinkPreview": false,
+    "scrollEnabled": false,
+    "backgroundColor": "#0d1117",
+    "preferredContentMode": "mobile"
+  },
+  "server": {
+    "allowNavigation": [
+      "*.peerjs.com",
+      "0.peerjs.com",
+      "fonts.googleapis.com",
+      "fonts.gstatic.com"
+    ]
+  }
+}

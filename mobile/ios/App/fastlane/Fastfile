@@ -1,0 +1,242 @@
+default_platform(:ios)
+
+XCODE_DIR  = File.expand_path("..", __dir__)                # ios/App/
+WORKSPACE  = File.join(XCODE_DIR, "App.xcworkspace")
+SCHEME     = "App"
+OUTPUT_DIR = File.expand_path("../../../build", __dir__)   # dama/mobile/build/
+MOBILE_DIR = File.expand_path("../../../../", __dir__)     # dama/mobile/
+
+platform :ios do
+
+  # ─────────────────────────────────────────────────────────────────
+  # LANE 1  •  İmzasız IPA  (AltStore / Sideloadly ile yükle)
+  # Kullanım:   fastlane unsigned
+  # Not:        `npx cap sync ios` önceden çalıştırılmalı
+  # ─────────────────────────────────────────────────────────────────
+  desc "İmzasız IPA oluştur — AltStore / Sideloadly için"
+  lane :unsigned do
+    derived   = File.join(OUTPUT_DIR, "derived")
+    app_dir   = File.join(derived, "Build/Products/Release-iphoneos")
+    ipa_stage = File.join(OUTPUT_DIR, "ipa_stage")
+    final_ipa = File.join(OUTPUT_DIR, "Dama_unsigned.ipa")
+
+    FileUtils.rm_rf(derived)
+    FileUtils.mkdir_p(OUTPUT_DIR)
+
+    puts "🔨 İmzasız build oluşturuluyor..."
+    Dir.chdir(XCODE_DIR) do
+      sh(
+        "xcodebuild build " \
+        "-workspace '#{WORKSPACE}' " \
+        "-scheme '#{SCHEME}' " \
+        "-configuration Release " \
+        "-sdk iphoneos " \
+        "-derivedDataPath '#{derived}' " \
+        "CODE_SIGN_IDENTITY='' " \
+        "CODE_SIGNING_REQUIRED=NO " \
+        "CODE_SIGNING_ALLOWED=NO " \
+        "ENABLE_BITCODE=NO " \
+        "| xcpretty --color --simple || true"
+      )
+    end
+
+    app = Dir.glob("#{app_dir}/*.app").first
+    raise "❌ .app bulunamadı. Build başarısız olmuş olabilir." unless app && File.exist?(app)
+
+    puts "📦 IPA paketleniyor: #{File.basename(app)}"
+    FileUtils.rm_rf(ipa_stage)
+    FileUtils.mkdir_p(File.join(ipa_stage, "Payload"))
+    FileUtils.cp_r(app, File.join(ipa_stage, "Payload/"))
+
+    Dir.chdir(ipa_stage) { sh("zip -qr Dama_unsigned.ipa Payload/") }
+    FileUtils.mv(File.join(ipa_stage, "Dama_unsigned.ipa"), final_ipa, force: true)
+    FileUtils.rm_rf(ipa_stage)
+
+    puts ""
+    puts "✅ IPA hazır → #{final_ipa}"
+    puts "   Boyut: #{(File.size(final_ipa) / 1024.0 / 1024.0).round(1)} MB"
+    puts ""
+    puts "📱 Yükleme seçenekleri:"
+    puts "   • AltStore   → https://altstore.io"
+    puts "   • Sideloadly → https://sideloadly.io"
+    puts "   • İmzalı build için: fastlane dev  (ücretsiz Apple ID yeterli)"
+  end
+
+  # ─────────────────────────────────────────────────────────────────
+  # LANE 2  •  Simulator Build + Otomatik Başlat
+  # Kullanım:   fastlane simulator
+  # ─────────────────────────────────────────────────────────────────
+  desc "iOS Simulator'da derle ve başlat"
+  lane :simulator do
+    sim_dir = File.join(OUTPUT_DIR, "simulator")
+    FileUtils.mkdir_p(sim_dir)
+
+    puts "🔨 Simulator için derleniyor..."
+    Dir.chdir(XCODE_DIR) do
+      sh(
+        "xcodebuild build " \
+        "-workspace '#{WORKSPACE}' " \
+        "-scheme '#{SCHEME}' " \
+        "-configuration Debug " \
+        "-sdk iphonesimulator " \
+        "-derivedDataPath '#{sim_dir}' " \
+        "CODE_SIGN_IDENTITY='' CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO " \
+        "| xcpretty --color --simple || true"
+      )
+    end
+
+    app = Dir.glob("#{sim_dir}/**/Debug-iphonesimulator/*.app").first
+    raise "❌ Simulator .app bulunamadı" unless app
+
+    puts "🚀 Simulator başlatılıyor..."
+    sh("xcrun simctl boot 'iPhone 17 Pro' 2>/dev/null || true")
+    sh("open -a Simulator")
+    sleep(3)
+    sh("xcrun simctl install booted '#{app}'")
+    sh("xcrun simctl launch booted com.ogzgul.dama")
+    puts "✅ Uygulama Simulator'da çalışıyor!"
+  end
+
+  # ─────────────────────────────────────────────────────────────────
+  # LANE 3  •  Developer (ücretsiz Apple ID, cihaza yüklenebilir)
+  # Kullanım:   fastlane dev
+  # ─────────────────────────────────────────────────────────────────
+  desc "Apple ID ile imzalı IPA — cihaza yüklenebilir (7 gün geçerli)"
+  lane :dev do
+    update_code_signing_settings(
+      use_automatic_signing: true,
+      path:                  "App.xcodeproj",
+      bundle_identifier:     "com.ogzgul.dama",
+    )
+
+    gym(
+      workspace:        WORKSPACE,
+      scheme:           SCHEME,
+      configuration:    "Release",
+      export_method:    "development",
+      output_directory: OUTPUT_DIR,
+      output_name:      "Dama_dev.ipa",
+      clean:            true,
+    )
+    puts "✅ #{OUTPUT_DIR}/Dama_dev.ipa"
+  end
+
+  # ─────────────────────────────────────────────────────────────────
+  # LANE 4  •  TestFlight  (Apple Developer Program — $99/yıl)
+  # Kullanım:   fastlane beta
+  #
+  # Önce:
+  #   1) fastlane/.env dosyasını doldurun
+  #   2) .p8 dosyasını fastlane/keys/AuthKey.p8 olarak kopyalayın
+  #   3) Xcode > Settings > Accounts > Apple ID ekleyin
+  # ─────────────────────────────────────────────────────────────────
+  desc "TestFlight'a yükle — API Key ile"
+  lane :beta do
+    # ── 1. API Key yükle ──────────────────────────────────────────
+    api_key = app_store_connect_api_key(
+      key_id:       ENV["ASC_KEY_ID"],
+      issuer_id:    ENV["ASC_ISSUER_ID"],
+      key_filepath: ENV["ASC_KEY_FILEPATH"],
+      duration:     1200,
+      in_house:     false,
+    )
+
+    # ── 2. Build numarasını TestFlight'taki son numaradan artır ──
+    current_build = latest_testflight_build_number(
+      api_key:    api_key,
+      app_identifier: "com.ogzgul.dama",
+    ) rescue 0
+    new_build = current_build + 1
+    increment_build_number(
+      build_number: new_build,
+      xcodeproj:    File.join(XCODE_DIR, "App.xcodeproj"),
+    )
+    puts "📋 Build numarası: #{new_build}"
+
+    # ── 3. Distribution sertifikası indir/oluştur ─────────────────
+    cert(
+      api_key:  api_key,
+      team_id:  ENV["TEAM_ID"],
+    )
+
+    # ── 4. App Store Distribution provisioning profile (cihaz gerekmez)
+    sigh(
+      api_key:        api_key,
+      app_identifier: "com.ogzgul.dama",
+      team_id:        ENV["TEAM_ID"],
+      adhoc:          false,
+    )
+
+    # ── 5. Manuel imzalama ayarla ─────────────────────────────────
+    update_code_signing_settings(
+      use_automatic_signing: false,
+      path:                  File.join(XCODE_DIR, "App.xcodeproj"),
+      bundle_identifier:     "com.ogzgul.dama",
+      team_id:               ENV["TEAM_ID"],
+      code_sign_identity:    "Apple Distribution",
+      profile_name:          ENV["SIGH_NAME"],
+    )
+
+    # ── 6. IPA derle (Manuel imza, App Store) ────────────────────
+    gym(
+      workspace:        WORKSPACE,
+      scheme:           SCHEME,
+      configuration:    "Release",
+      export_method:    "app-store",
+      output_directory: OUTPUT_DIR,
+      output_name:      "Dama_appstore.ipa",
+      clean:            true,
+      export_options: {
+        teamID:            ENV["TEAM_ID"],
+        signingStyle:      "manual",
+        uploadBitcode:     false,
+        uploadSymbols:     true,
+        compileBitcode:    false,
+        provisioningProfiles: {
+          "com.ogzgul.dama" => ENV["SIGH_NAME"],
+        },
+      },
+    )
+
+    # ── 4. TestFlight'a yükle ────────────────────────────────────
+    upload_to_testflight(
+      api_key:                           api_key,
+      ipa:                               "#{OUTPUT_DIR}/Dama_appstore.ipa",
+      app_identifier:                    "com.ogzgul.dama",
+      skip_waiting_for_build_processing: true,
+      changelog:                         "Dama v#{get_version_number(xcodeproj: File.join(XCODE_DIR, 'App.xcodeproj'))} — build #{new_build}",
+    )
+
+    puts ""
+    puts "✅ TestFlight'a yüklendi! Build: #{new_build}"
+    puts "   App Store Connect → TestFlight → Dama"
+    puts "   İşleme ~5-10 dk sürer, sonra test davetiyesi gönderilebilir."
+  end
+
+  # ─────────────────────────────────────────────────────────────────
+  # LANE 5  •  App Store  (Apple Developer Program — $99/yıl)
+  # Kullanım:   fastlane release
+  # ─────────────────────────────────────────────────────────────────
+  desc "App Store Connect'e gönder"
+  lane :release do
+    gym(
+      workspace:        WORKSPACE,
+      scheme:           SCHEME,
+      configuration:    "Release",
+      export_method:    "app-store",
+      output_directory: OUTPUT_DIR,
+      output_name:      "Dama_release.ipa",
+      clean:            true,
+    )
+    deliver(submit_for_review: false, automatic_release: false)
+  end
+
+  # ─────────────────────────────────────────────────────────────────
+  error do |lane, exception|
+    puts "\n❌ Hata (#{lane}): #{exception.message}\n"
+    if exception.message.include?("signing") || exception.message.include?("CODE_SIGN")
+      puts "💡 İpucu: İmzasız build için 'fastlane unsigned' kullanın."
+    end
+  end
+
+end

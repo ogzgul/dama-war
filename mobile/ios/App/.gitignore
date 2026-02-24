@@ -1,0 +1,12 @@
+# Fastlane gizli dosyalar — GİT'E ASLA EKLEME
+fastlane/.env
+fastlane/keys/
+build/
+
+# Xcode
+*.xcuserstate
+xcuserdata/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM

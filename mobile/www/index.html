@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Dama — Turkish Checkers</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="peerjs.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:       #0d1117;
+      --sf:       #161b22;
+      --sf2:      #21262d;
+      --bd:       #30363d;
+      --gold:     #d4a843;
+      --gold-dk:  #9a7230;
+      --text:     #e6edf3;
+      --muted:    #8b949e;
+      --green:    #3fb950;
+      --red:      #f85149;
+      --radius:   14px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      /* iOS safe area (notch / Dynamic Island / home bar) */
+      padding: calc(20px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));
+      padding-left:  max(16px, env(safe-area-inset-left));
+      padding-right: max(16px, env(safe-area-inset-right));
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+    }
+    body::before {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 40% at 50% 0%, rgba(212,168,67,.07) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 60% at 80% 100%, rgba(100,60,200,.06) 0%, transparent 60%);
+    }
+
+    /* ── Header ───────────────────────────── */
+    header { text-align: center; margin-bottom: 24px; }
+    header h1 {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(28px, 5vw, 50px);
+      font-weight: 900;
+      letter-spacing: .1em;
+      background: linear-gradient(135deg, #f5d78e 0%, var(--gold) 50%, #b8862a 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { font-size: 11px; color: var(--muted); letter-spacing: .2em; text-transform: uppercase; margin-top: 2px; }
+
+    /* ── Shared card ──────────────────────── */
+    .card {
+      background: var(--sf);
+      border: 1px solid var(--bd);
+      border-radius: var(--radius);
+      padding: 28px;
+      width: 100%;
+    }
+    .card h2 { font-family: 'Cinzel', serif; font-size: 18px; color: var(--gold); margin-bottom: 18px; text-align: center; }
+
+    /* ── Menu ─────────────────────────────── */
+    #menu { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; max-width: 380px; }
+    .mbtn {
+      display: flex; align-items: center; gap: 14px;
+      width: 100%; background: var(--sf2);
+      border: 1px solid var(--bd); border-radius: 10px;
+      padding: 15px 18px; margin-bottom: 10px;
+      cursor: pointer; text-align: left; color: var(--text);
+      transition: border-color .2s, background .2s, transform .12s;
+      font-family: inherit;
+    }
+    .mbtn:last-child { margin-bottom: 0; }
+    .mbtn:hover { border-color: var(--gold); background: rgba(212,168,67,.07); transform: translateY(-1px); }
+    .mbtn .ico { font-size: 26px; flex-shrink: 0; width: 36px; text-align: center; }
+    .mbtn .inf strong { display: block; font-size: 14px; font-weight: 600; }
+    .mbtn .inf span   { font-size: 12px; color: var(--muted); }
+    .mbtn.online-btn  { border-color: rgba(63,185,80,.3); }
+    .mbtn.online-btn:hover { border-color: var(--green); background: rgba(63,185,80,.07); }
+    .rules-hint { font-size: 12px; color: var(--muted); text-align: center; line-height: 1.85; max-width: 300px; }
+
+    /* ── Lobby ────────────────────────────── */
+    #lobby { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; max-width: 420px; }
+    #lobby.on { display: flex; }
+    .ltabs { display: flex; gap: 0; border: 1px solid var(--bd); border-radius: 8px; overflow: hidden; width: 100%; }
+    .ltab {
+      flex: 1; padding: 11px; background: var(--sf2); border: none; color: var(--muted);
+      font-size: 13px; font-weight: 600; font-family: inherit; cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+    .ltab.active { background: rgba(212,168,67,.12); color: var(--gold); }
+    .ltab:first-child { border-right: 1px solid var(--bd); }
+
+    /* Create room */
+    #create-tab, #join-tab { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+    .code-box {
+      background: var(--sf2); border: 2px dashed var(--gold-dk); border-radius: 12px;
+      padding: 20px 32px; text-align: center; width: 100%;
+    }
+    .code-box .code-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px; }
+    .code-big { font-family: 'Cinzel', serif; font-size: 38px; font-weight: 900; letter-spacing: .18em; color: var(--gold); line-height: 1; }
+    .code-box .code-note { font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+    .btn-row { display: flex; gap: 10px; width: 100%; }
+    .gbtn {
+      flex: 1; padding: 11px 16px; border: 1px solid var(--bd); border-radius: 9px;
+      background: var(--sf2); color: var(--text); font-size: 13px; font-weight: 600;
+      font-family: inherit; cursor: pointer; transition: border-color .2s, background .2s;
+    }
+    .gbtn:hover   { border-color: var(--gold); background: rgba(212,168,67,.08); }
+    .gbtn.primary {
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dk) 100%);
+      color: #1a0f00; border-color: transparent;
+    }
+    .gbtn.primary:hover { filter: brightness(1.08); }
+    .gbtn.green { border-color: rgba(63,185,80,.4); color: var(--green); }
+    .gbtn.green:hover { border-color: var(--green); background: rgba(63,185,80,.08); }
+    .gbtn.danger:hover { border-color: var(--red); background: rgba(248,81,73,.08); color: var(--red); }
+
+    .lobby-status {
+      font-size: 13px; text-align: center; padding: 10px 16px;
+      background: var(--sf2); border: 1px solid var(--bd); border-radius: 8px; width: 100%;
+      min-height: 42px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .lobby-status .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex-shrink: 0;
+    }
+    .lobby-status .dot.waiting { background: var(--gold); animation: pulse 1.4s ease-in-out infinite; }
+    .lobby-status .dot.ok  { background: var(--green); }
+    .lobby-status .dot.err { background: var(--red); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .code-input {
+      width: 100%; padding: 13px 16px; font-size: 22px; font-family: 'Cinzel', serif;
+      font-weight: 700; text-align: center; letter-spacing: .15em; text-transform: uppercase;
+      background: var(--sf2); border: 2px solid var(--bd); border-radius: 10px; color: var(--text);
+      outline: none; transition: border-color .2s;
+    }
+    .code-input:focus { border-color: var(--gold); }
+    .code-input::placeholder { color: var(--muted); letter-spacing: .1em; font-size: 16px; }
+
+    /* URL share bar */
+    .share-bar {
+      display: flex; gap: 8px; align-items: center; width: 100%;
+      background: var(--sf2); border: 1px solid var(--bd); border-radius: 8px;
+      padding: 8px 12px; font-size: 12px; color: var(--muted);
+    }
+    .share-bar .surl { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .share-bar .scopy {
+      flex-shrink: 0; padding: 4px 10px; background: transparent; border: 1px solid var(--bd);
+      border-radius: 6px; color: var(--text); font-size: 11px; cursor: pointer; font-family: inherit;
+      transition: border-color .2s;
+    }
+    .share-bar .scopy:hover { border-color: var(--gold); }
+
+    /* ── Game layout ──────────────────────── */
+    #game { display: none; flex-direction: row; align-items: flex-start; justify-content: center; gap: 20px; width: 100%; max-width: 980px; }
+    #game.on { display: flex; }
+
+    /* Online status badge */
+    #online-badge {
+      display: none; align-items: center; gap: 8px;
+      background: rgba(63,185,80,.1); border: 1px solid rgba(63,185,80,.3);
+      border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 500;
+      color: var(--green); margin-bottom: 2px;
+    }
+    #online-badge.on { display: flex; }
+    #online-badge .bdot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+
+    /* ── Side panel ───────────────────────── */
+    .panel {
+      background: var(--sf); border: 1px solid var(--bd); border-radius: var(--radius);
+      padding: 18px 14px; width: 175px; flex-shrink: 0;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .pcard {
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 14px 8px; border: 1px solid var(--bd); border-radius: 10px;
+      transition: border-color .25s, background .25s;
+    }
+    .pcard.active { border-color: var(--gold); background: rgba(212,168,67,.07); }
+    .pcard.active .pname { color: var(--gold); }
+    .pip {
+      width: 44px; height: 44px; border-radius: 50%;
+      border: 3px solid rgba(255,255,255,.12);
+      box-shadow: 0 4px 12px rgba(0,0,0,.5);
+    }
+    .pip.w { background: radial-gradient(circle at 35% 30%, #fff 0%, #d8ccb0 45%, #a08858 100%); border-color: rgba(0,0,0,.15); }
+    .pip.b { background: radial-gradient(circle at 35% 30%, #606060 0%, #282828 45%, #0d0d0d 100%); }
+    .pname { font-family: 'Cinzel', serif; font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .06em; transition: color .25s; }
+    .you-tag { font-size: 9px; padding: 2px 7px; background: rgba(212,168,67,.15); border: 1px solid rgba(212,168,67,.3); border-radius: 4px; color: var(--gold); display: none; }
+    .you-tag.on { display: block; }
+    .sbox { text-align: center; }
+    .sbox .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+    .sbox .val { font-size: 30px; font-weight: 700; font-family: 'Cinzel', serif; }
+    .caps-row { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; min-height: 18px; }
+    .capc { width: 13px; height: 13px; border-radius: 50%; border: 1px solid rgba(255,255,255,.1); }
+    .capc.w { background: radial-gradient(circle at 35% 35%, #fff 0%, #a09060 100%); }
+    .capc.b { background: radial-gradient(circle at 35% 35%, #555 0%, #111 100%); }
+    .sep { height: 1px; background: var(--bd); }
+    .pbtn {
+      width: 100%; padding: 9px 8px; background: var(--sf2);
+      border: 1px solid var(--bd); border-radius: 8px;
+      color: var(--text); font-size: 12px; font-family: inherit;
+      cursor: pointer; transition: border-color .2s, background .2s;
+    }
+    .pbtn:hover { border-color: var(--gold); background: rgba(212,168,67,.08); }
+    .pbtn.red:hover { border-color: var(--red); background: rgba(248,81,73,.08); color: var(--red); }
+    .info-text { font-size: 11px; color: var(--muted); line-height: 1.75; text-align: center; padding: 0 2px; }
+    .ti { text-align: center; }
+    .ti .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
+    .ti .val  { font-size: 13px; font-weight: 600; color: var(--gold); margin-top: 2px; }
+    .mc { text-align: center; font-size: 11px; color: var(--muted); }
+
+    /* ── Board ────────────────────────────── */
+    #board-container { display: flex; flex-direction: column; align-items: center; gap: 10px; flex-shrink: 0; }
+    #status-bar {
+      background: var(--sf); border: 1px solid var(--bd);
+      border-radius: 8px; padding: 9px 22px; font-size: 13px; font-weight: 500;
+      text-align: center; min-width: 290px; transition: border-color .3s, color .3s;
+    }
+    #status-bar.wt  { border-color: rgba(240,220,160,.4); }
+    #status-bar.bt  { border-color: rgba(100,100,100,.5); }
+    #status-bar.go  { border-color: var(--gold); color: var(--gold); background: rgba(212,168,67,.1); }
+    #status-bar.warn{ border-color: var(--red); color: #ff8080; }
+    #status-bar.wait{ border-color: rgba(212,168,67,.3); color: var(--muted); }
+    #board-wrap {
+      position: relative; display: inline-block; padding: 14px;
+      background: linear-gradient(145deg, #2e2008, #1a1006);
+      border-radius: 8px;
+      box-shadow: 0 0 0 3px var(--gold-dk), 0 0 0 5px #0d0800, 0 24px 64px rgba(0,0,0,.75), inset 0 1px 0 rgba(255,255,255,.05);
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 66px);
+      grid-template-rows: repeat(8, 66px);
+      border: 2px solid rgba(0,0,0,.5); border-radius: 2px; overflow: hidden;
+    }
+    .cell { width: 66px; height: 66px; display: flex; align-items: center; justify-content: center; position: relative; }
+    .cell.lt { background: #f0deb4; }
+    .cell.dk { background: #9b6b3a; }
+    .cell.sel  { background: rgba(255,215,0,.45) !important; }
+    .cell.vm::after { content:''; position:absolute; inset:0; background:rgba(80,210,130,.55); pointer-events:none; }
+    .cell.cm::after { content:''; position:absolute; inset:0; background:rgba(230,60,60,.55);  pointer-events:none; }
+    .cell.vm:hover::after,.cell.cm:hover::after { filter:brightness(1.2); }
+    .cell.vm,.cell.cm { cursor: pointer; }
+    .cell.lm { box-shadow: inset 0 0 0 3px rgba(255,210,80,.45); }
+    .piece {
+      width: 52px; height: 52px; border-radius: 50%;
+      position: relative; z-index: 2; cursor: pointer;
+      transition: transform .15s, box-shadow .15s; flex-shrink: 0;
+    }
+    .piece:hover { transform: scale(1.07); }
+    .piece.wp {
+      background: radial-gradient(circle at 34% 28%, #ffffff 0%, #ecddc0 38%, #c4a870 72%, #987040 100%);
+      border: 3px solid rgba(0,0,0,.18);
+      box-shadow: 0 4px 12px rgba(0,0,0,.45), inset 0 -3px 7px rgba(0,0,0,.15), inset 0 4px 10px rgba(255,255,255,.6);
+    }
+    .piece.bp {
+      background: radial-gradient(circle at 34% 28%, #606060 0%, #2e2e2e 38%, #181818 72%, #080808 100%);
+      border: 3px solid rgba(255,255,255,.07);
+      box-shadow: 0 4px 12px rgba(0,0,0,.7), inset 0 -3px 7px rgba(0,0,0,.4), inset 0 4px 10px rgba(255,255,255,.1);
+    }
+    .piece.sp {
+      transform: scale(1.1) translateY(-4px) !important;
+      box-shadow: 0 0 0 3px rgba(255,220,60,.8), 0 8px 20px rgba(0,0,0,.5) !important;
+    }
+    .piece.king::after {
+      content:'♛'; position:absolute; inset:0;
+      display:flex; align-items:center; justify-content:center;
+      font-size:20px; line-height:1; pointer-events:none;
+    }
+    .piece.wp.king::after { color: rgba(160,110,20,.9); }
+    .piece.bp.king::after { color: rgba(255,210,70,.85); }
+    @keyframes bounce { 0%{transform:scale(1) translateY(0)} 35%{transform:scale(1.12) translateY(-7px)} 65%{transform:scale(.97) translateY(1px)} 100%{transform:scale(1) translateY(0)} }
+    .piece.jm { animation: bounce .32s ease; }
+    #ai-think {
+      display: none; position: absolute; inset: 0;
+      background: rgba(0,0,0,.22); border-radius: 2px;
+      align-items: center; justify-content: center; z-index: 20;
+    }
+    #ai-think.on { display: flex; }
+    .spin { width: 38px; height: 38px; border: 4px solid rgba(212,168,67,.2); border-top-color: var(--gold); border-radius: 50%; animation: rot .65s linear infinite; }
+    @keyframes rot { to { transform: rotate(360deg); } }
+
+    /* ── Modals ───────────────────────────── */
+    .overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.75); backdrop-filter: blur(6px);
+      z-index: 100; align-items: center; justify-content: center;
+    }
+    .overlay.on { display: flex; }
+    .modal {
+      background: var(--sf); border: 1px solid var(--gold); border-radius: 20px;
+      padding: 40px 44px; text-align: center; max-width: 360px; width: 90%;
+      box-shadow: 0 0 60px rgba(212,168,67,.2);
+      animation: min .35s cubic-bezier(.34,1.56,.64,1);
+    }
+    .modal.bd { border-color: var(--red); box-shadow: 0 0 60px rgba(248,81,73,.15); }
+    @keyframes min { from{transform:scale(.7);opacity:0} to{transform:scale(1);opacity:1} }
+    .modal .mico { font-size: 58px; line-height: 1; margin-bottom: 14px; }
+    .modal h2 { font-family: 'Cinzel', serif; font-size: 24px; color: var(--gold); margin-bottom: 6px; }
+    .modal.bd h2 { color: var(--red); }
+    .modal p  { color: var(--muted); font-size: 14px; margin-bottom: 26px; line-height: 1.6; }
+    .mbtns { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .btn-p {
+      padding: 11px 24px; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dk) 100%);
+      color: #1a0f00; font-size: 13px; font-weight: 700; font-family: inherit;
+      cursor: pointer; transition: filter .2s, transform .1s;
+    }
+    .btn-p:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-s {
+      padding: 11px 24px; border: 1px solid var(--bd); border-radius: 10px;
+      background: transparent; color: var(--text); font-size: 13px; font-weight: 600; font-family: inherit;
+      cursor: pointer; transition: border-color .2s, background .2s;
+    }
+    .btn-s:hover { border-color: var(--gold); background: rgba(212,168,67,.08); }
+
+    /* Toast */
+    #toast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
+      background: var(--sf2); border: 1px solid var(--bd); border-radius: 8px;
+      padding: 10px 20px; font-size: 13px; color: var(--text);
+      opacity: 0; transition: opacity .3s, transform .3s; z-index: 200; white-space: nowrap;
+    }
+    #toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ── Responsive ───────────────────────── */
+    @media (max-width: 780px) {
+      body { padding-top: calc(12px + env(safe-area-inset-top)); padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+      header { margin-bottom: 12px; }
+      header h1 { font-size: clamp(22px, 6vw, 36px); }
+      #game { flex-direction: column; align-items: center; gap: 10px; }
+      /* Compact top bar: both player cards side by side */
+      .panel {
+        width: 100%; max-width: 560px;
+        flex-direction: row; flex-wrap: wrap;
+        gap: 8px; padding: 10px;
+      }
+      .pcard { flex: 1; min-width: 100px; padding: 8px 6px; }
+      .pip { width: 32px; height: 32px; }
+      .pname { font-size: 10px; }
+      .sbox .val { font-size: 22px; }
+      .sep { display: none; }
+      /* Hide "how to play" text on mobile to save space */
+      .info-text { display: none; }
+      /* Compact buttons */
+      .pbtn { padding: 7px 6px; font-size: 11px; }
+      /* Board auto-sizes to screen width */
+      #board {
+        --cell: min(42px, calc((100vw - 48px) / 8));
+        grid-template-columns: repeat(8, var(--cell));
+        grid-template-rows: repeat(8, var(--cell));
+      }
+      .cell  { width: var(--cell, 42px); height: var(--cell, 42px); }
+      .piece { width: calc(var(--cell, 42px) - 8px); height: calc(var(--cell, 42px) - 8px); }
+      .piece.king::after { font-size: 13px; }
+      #status-bar { font-size: 12px; padding: 7px 14px; min-width: unset; width: 100%; }
+      #board-wrap { padding: 10px; }
+    }
+    @media (max-width: 400px) {
+      #board {
+        --cell: min(38px, calc((100vw - 36px) / 8));
+        grid-template-columns: repeat(8, var(--cell));
+        grid-template-rows: repeat(8, var(--cell));
+      }
+      .cell  { width: var(--cell, 38px); height: var(--cell, 38px); }
+      .piece { width: calc(var(--cell, 38px) - 7px); height: calc(var(--cell, 38px) - 7px); }
+      .piece.king::after { font-size: 11px; }
+    }
+  </style>
+</head>
+<body>
+
+<header><h1>DAMA</h1><p>Turkish Checkers</p></header>
+
+<!-- ───────── MENU ───────────────────── -->
+<div id="menu" style="display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:380px;">
+  <div class="card">
+    <h2>Select Game Mode</h2>
+    <button class="mbtn" onclick="startGame('pvp')">
+      <span class="ico">👥</span><span class="inf"><strong>Two Players</strong><span>Local same device</span></span>
+    </button>
+    <button class="mbtn" onclick="startGame('easy')">
+      <span class="ico">🤖</span><span class="inf"><strong>vs AI — Easy</strong><span>Relaxed practice</span></span>
+    </button>
+    <button class="mbtn" onclick="startGame('hard')">
+      <span class="ico">🧠</span><span class="inf"><strong>vs AI — Hard</strong><span>Challenging AI</span></span>
+    </button>
+    <button class="mbtn online-btn" onclick="showLobby()">
+      <span class="ico">🌐</span><span class="inf"><strong>Online Multiplayer</strong><span>Play vs friend on any device</span></span>
+    </button>
+  </div>
+  <div class="rules-hint">
+    <strong style="color:var(--gold)">Turkish Dama</strong><br>
+    Pieces move <b>forward &amp; sideways</b> · Capture in <b>all</b> directions<br>
+    Chain captures <b>mandatory</b> · Kings slide <b>any distance</b>
+  </div>
+</div>
+
+<!-- ───────── LOBBY ──────────────────── -->
+<div id="lobby">
+  <div class="card" style="max-width:420px;">
+    <h2>🌐 Online Multiplayer</h2>
+    <div class="ltabs">
+      <button class="ltab active" id="tab-create" onclick="lobbyTab('create')">Create Room</button>
+      <button class="ltab"        id="tab-join"   onclick="lobbyTab('join')">Join Room</button>
+    </div>
+    <div style="margin-top:18px;"></div>
+
+    <!-- Create tab -->
+    <div id="create-tab">
+      <div class="code-box">
+        <div class="code-lbl">Your Room Code</div>
+        <div class="code-big" id="room-code-display">——————</div>
+        <div class="code-note">Share this code with your friend</div>
+      </div>
+      <div class="share-bar" id="share-bar" style="display:none;">
+        <span class="surl" id="share-url"></span>
+        <button class="scopy" onclick="copyURL()">Copy Link</button>
+      </div>
+      <div class="btn-row">
+        <button class="gbtn primary" id="gen-btn" onclick="createRoom()">Generate Room</button>
+        <button class="gbtn green"   id="copy-btn" onclick="copyCode()" style="display:none;">Copy Code</button>
+      </div>
+      <div class="lobby-status" id="create-status">
+        <span class="dot" id="create-dot"></span>
+        <span id="create-msg">Click "Generate Room" to start</span>
+      </div>
+    </div>
+
+    <!-- Join tab -->
+    <div id="join-tab" style="display:none;">
+      <input class="code-input" id="join-input" maxlength="6" placeholder="Enter code" oninput="this.value=this.value.toUpperCase()" />
+      <button class="gbtn primary" style="width:100%;" onclick="joinRoom()">Join Room</button>
+      <div class="lobby-status" id="join-status">
+        <span class="dot" id="join-dot"></span>
+        <span id="join-msg">Enter the 6-character room code</span>
+      </div>
+    </div>
+  </div>
+  <button class="gbtn danger" style="width:100%;max-width:420px;" onclick="lobbyBack()">← Back to Menu</button>
+</div>
+
+<!-- ───────── GAME ────────────────────── -->
+<div id="game">
+
+  <!-- Black / Online Opponent panel -->
+  <div class="panel">
+    <div class="pcard" id="card-b">
+      <div class="pip b"></div>
+      <div class="pname" id="pname-b">BLACK</div>
+      <div class="you-tag" id="you-b">YOU</div>
+    </div>
+    <div class="sbox"><div class="lbl">Captured</div><div class="val" id="score-b">0</div></div>
+    <div class="caps-row" id="caps-b"></div>
+    <div class="sep"></div>
+    <div class="ti"><div class="lbl">Turn</div><div class="val" id="turn-lbl">—</div></div>
+    <div class="mc" id="mc">Move 0</div>
+    <div class="sep"></div>
+    <button class="pbtn" onclick="restartGame()">↺ Restart</button>
+    <button class="pbtn red" onclick="exitGame()">✕ Menu</button>
+  </div>
+
+  <!-- Board -->
+  <div id="board-container">
+    <div id="online-badge">
+      <span class="bdot"></span>
+      <span>Online · Room: <b id="badge-code">—</b> · You play: <b id="badge-role">—</b></span>
+    </div>
+    <div id="status-bar">Welcome!</div>
+    <div id="board-wrap">
+      <div id="board"></div>
+      <div id="ai-think"><div class="spin"></div></div>
+    </div>
+  </div>
+
+  <!-- White panel -->
+  <div class="panel">
+    <div class="pcard" id="card-w">
+      <div class="pip w"></div>
+      <div class="pname" id="pname-w">WHITE</div>
+      <div class="you-tag" id="you-w">YOU</div>
+    </div>
+    <div class="sbox"><div class="lbl">Captured</div><div class="val" id="score-w">0</div></div>
+    <div class="caps-row" id="caps-w"></div>
+    <div class="sep"></div>
+    <div class="info-text">
+      <span style="color:var(--gold)">How to play:</span><br>
+      Tap piece → tap destination.<br><br>
+      <b>Forward &amp; sideways</b> only.<br>
+      <b>All 4 directions</b> to capture.<br>
+      <b>Chain captures</b> required.<br>
+      <b>♛ King</b> slides any distance.
+    </div>
+    <div class="sep"></div>
+    <div class="info-text" id="last-txt">—</div>
+  </div>
+</div>
+
+<!-- ───────── WIN MODAL ────────────────── -->
+<div class="overlay" id="win-modal">
+  <div class="modal">
+    <div class="mico">🏆</div>
+    <h2 id="win-title">White Wins!</h2>
+    <p  id="win-desc">Congratulations!</p>
+    <div class="mbtns">
+      <button class="btn-p" onclick="restartGame();closeModals()">Play Again</button>
+      <button class="btn-s" onclick="exitGame();closeModals()">Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────── DISCONNECT MODAL ────────── -->
+<div class="overlay" id="disc-modal">
+  <div class="modal bd">
+    <div class="mico">📡</div>
+    <h2>Disconnected</h2>
+    <p>Your opponent left the game.</p>
+    <div class="mbtns">
+      <button class="btn-p" onclick="exitGame();closeModals()">Back to Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ================================================================
+     DAMA — Complete Game Engine + P2P Online (PeerJS)
+     ================================================================ -->
+<script>
+'use strict';
+
+/* ── Constants ──────────────────────────── */
+const E=0,W=1,B=2,WK=3,BK=4;
+const ALL4=[[-1,0],[1,0],[0,-1],[0,1]];
+const isW=v=>v===W||v===WK, isB=v=>v===B||v===BK, isK=v=>v===WK||v===BK;
+const owns=(v,pl)=>pl==='w'?isW(v):isB(v);
+const opp=pl=>pl==='w'?'b':'w';
+const inB=(r,c)=>r>=0&&r<8&&c>=0&&c<8;
+const deep=b=>b.map(r=>[...r]);
+
+/* ── Game state ─────────────────────────── */
+let board,cur,selected,moves,captured,moveNo,mode,over,busy,lastMove;
+
+/* ── Online state ───────────────────────── */
+let peer=null, conn=null, myRole=null, roomCode='', onlineReady=false;
+
+/* ── Board init ─────────────────────────── */
+function init() {
+  board=Array.from({length:8},()=>Array(8).fill(E));
+  for(let c=0;c<8;c++){board[1][c]=B;board[2][c]=B;}
+  for(let c=0;c<8;c++){board[5][c]=W;board[6][c]=W;}
+  cur='w'; selected=null; moves=[]; captured={w:0,b:0};
+  moveNo=0; over=false; busy=false; lastMove=null;
+  document.getElementById('last-txt').textContent='—';
+}
+
+/* ── Move generation ────────────────────── */
+function allMoves(b,pl) {
+  const caps=[];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++)
+    if(owns(b[r][c],pl)) caps.push(...captures(b,r,c,pl,[],r,c));
+  if(caps.length){
+    const mx=Math.max(...caps.map(m=>m.caps.length));
+    return caps.filter(m=>m.caps.length===mx);
+  }
+  const ms=[];
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    if(!owns(b[r][c],pl)) continue;
+    const v=b[r][c];
+    const dirs=isK(v)?ALL4:(pl==='w'?[[-1,0],[0,-1],[0,1]]:[[1,0],[0,-1],[0,1]]);
+    if(isK(v)){
+      for(const[dr,dc]of dirs){
+        let nr=r+dr,nc=c+dc;
+        while(inB(nr,nc)&&b[nr][nc]===E){ms.push({fr:r,fc:c,tr:nr,tc:nc,caps:[]});nr+=dr;nc+=dc;}
+      }
+    }else{
+      for(const[dr,dc]of dirs){
+        const nr=r+dr,nc=c+dc;
+        if(inB(nr,nc)&&b[nr][nc]===E) ms.push({fr:r,fc:c,tr:nr,tc:nc,caps:[]});
+      }
+    }
+  }
+  return ms;
+}
+
+function captures(b,r,c,pl,already,sR,sC){
+  const v=b[r][c]; const ch=[];
+  for(const[dr,dc]of ALL4){
+    if(isK(v)){
+      let nr=r+dr,nc=c+dc;
+      while(inB(nr,nc)&&b[nr][nc]===E){nr+=dr;nc+=dc;}
+      if(!inB(nr,nc))continue;
+      const mid=b[nr][nc];
+      if(owns(mid,pl)||mid===E)continue;
+      if(already.some(p=>p.r===nr&&p.c===nc))continue;
+      let lr=nr+dr,lc=nc+dc;
+      while(inB(lr,lc)&&b[lr][lc]===E){
+        const nc2=[...already,{r:nr,c:nc}];
+        const nb=deep(b);nb[r][c]=E;nb[lr][lc]=v;nb[nr][nc]=E;
+        const more=captures(nb,lr,lc,pl,nc2,sR,sC);
+        if(more.length) ch.push(...more);
+        else ch.push({fr:sR,fc:sC,tr:lr,tc:lc,caps:nc2});
+        lr+=dr;lc+=dc;
+      }
+    }else{
+      const mr=r+dr,mc=c+dc,lr=r+2*dr,lc=c+2*dc;
+      if(!inB(mr,mc)||!inB(lr,lc))continue;
+      const mid=b[mr][mc];
+      if(owns(mid,pl)||mid===E||b[lr][lc]!==E)continue;
+      if(already.some(p=>p.r===mr&&p.c===mc))continue;
+      const nc2=[...already,{r:mr,c:mc}];
+      const nb=deep(b);nb[r][c]=E;nb[lr][lc]=v;nb[mr][mc]=E;
+      const promoted=(pl==='w'&&v===W&&lr===0)||(pl==='b'&&v===B&&lr===7);
+      if(promoted){ch.push({fr:sR,fc:sC,tr:lr,tc:lc,caps:nc2});}
+      else{
+        const more=captures(nb,lr,lc,pl,nc2,sR,sC);
+        if(more.length) ch.push(...more);
+        else ch.push({fr:sR,fc:sC,tr:lr,tc:lc,caps:nc2});
+      }
+    }
+  }
+  return ch;
+}
+
+function apply(b,m,pl){
+  const v=b[m.fr][m.fc];
+  b[m.fr][m.fc]=E; b[m.tr][m.tc]=v;
+  for(const p of m.caps) b[p.r][p.c]=E;
+  if(pl==='w'&&v===W&&m.tr===0) b[m.tr][m.tc]=WK;
+  if(pl==='b'&&v===B&&m.tr===7) b[m.tr][m.tc]=BK;
+}
+
+/* ── Win check ──────────────────────────── */
+function winCheck(b){
+  let wc=0,bc=0;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){if(isW(b[r][c]))wc++;if(isB(b[r][c]))bc++;}
+  if(!wc)return'b'; if(!bc)return'w';
+  if(!allMoves(b,'w').length)return'b';
+  if(!allMoves(b,'b').length)return'w';
+  return null;
+}
+
+/* ── Minimax AI ─────────────────────────── */
+function evalB(b){
+  let s=0;
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const v=b[r][c];
+    if(v===W)s+=10+(6-r)*.3; if(v===WK)s+=22;
+    if(v===B)s-=10+(r-1)*.3; if(v===BK)s-=22;
+  }
+  return s;
+}
+function mm(b,d,a,be,max){
+  const w=winCheck(b);
+  if(w==='w')return 9000+d; if(w==='b')return-9000-d;
+  if(d===0)return evalB(b);
+  const pl=max?'w':'b'; const ms=allMoves(b,pl);
+  if(!ms.length)return max?-8000:8000;
+  if(max){
+    let best=-Infinity;
+    for(const m of ms){const nb=deep(b);apply(nb,m,pl);best=Math.max(best,mm(nb,d-1,a,be,false));a=Math.max(a,best);if(be<=a)break;}
+    return best;
+  }else{
+    let best=Infinity;
+    for(const m of ms){const nb=deep(b);apply(nb,m,pl);best=Math.min(best,mm(nb,d-1,a,be,true));be=Math.min(be,best);if(be<=a)break;}
+    return best;
+  }
+}
+function bestAI(b,pl,depth){
+  const ms=allMoves(b,pl); if(!ms.length)return null;
+  // Shuffle for variety at equal scores
+  ms.sort(()=>Math.random()-.5);
+  let best=pl==='w'?-Infinity:Infinity, bm=ms[0];
+  for(const m of ms){
+    const nb=deep(b);apply(nb,m,pl);
+    const s=mm(nb,depth-1,-Infinity,Infinity,pl!=='w');
+    if((pl==='w'&&s>best)||(pl==='b'&&s<best)){best=s;bm=m;}
+  }
+  return bm;
+}
+
+/* ── Render ─────────────────────────────── */
+function buildGrid(){
+  const el=document.getElementById('board');el.innerHTML='';
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const d=document.createElement('div');
+    d.className='cell '+((r+c)%2===0?'lt':'dk');
+    d.dataset.r=r;d.dataset.c=c;
+    d.addEventListener('click',onCell);
+    el.appendChild(d);
+  }
+}
+function $cell(r,c){return document.querySelector(`.cell[data-r="${r}"][data-c="${c}"]`);}
+
+function render(){
+  document.querySelectorAll('.cell').forEach(d=>{
+    d.className='cell '+((+d.dataset.r+ +d.dataset.c)%2===0?'lt':'dk');
+    d.innerHTML='';
+  });
+  if(lastMove){$cell(lastMove.fr,lastMove.fc)?.classList.add('lm');$cell(lastMove.tr,lastMove.tc)?.classList.add('lm');}
+  for(let r=0;r<8;r++) for(let c=0;c<8;c++){
+    const v=board[r][c];if(!v)continue;
+    const cl=$cell(r,c);
+    const p=document.createElement('div');
+    p.className='piece '+(isW(v)?'wp':'bp')+(isK(v)?' king':'');
+    if(selected&&selected.r===r&&selected.c===c)p.classList.add('sp');
+    cl.appendChild(p);
+  }
+  if(selected)$cell(selected.r,selected.c)?.classList.add('sel');
+  for(const m of moves){
+    const cl=$cell(m.tr,m.tc);if(!cl)continue;
+    cl.classList.add(m.caps.length?'cm':'vm');
+  }
+}
+
+function updateUI(){
+  document.getElementById('card-w').classList.toggle('active',cur==='w');
+  document.getElementById('card-b').classList.toggle('active',cur==='b');
+  document.getElementById('score-w').textContent=captured.w;
+  document.getElementById('score-b').textContent=captured.b;
+  ['w','b'].forEach(pl=>{
+    const el=document.getElementById('caps-'+pl);el.innerHTML='';
+    for(let i=0;i<captured[pl];i++){const d=document.createElement('div');d.className='capc '+pl;el.appendChild(d);}
+  });
+  document.getElementById('turn-lbl').textContent=cur==='w'?'WHITE':'BLACK';
+  document.getElementById('mc').textContent='Move '+moveNo;
+
+  const bar=document.getElementById('status-bar');
+  if(over){bar.className='go';return;}
+
+  if(mode==='online'&&!onlineReady){
+    bar.textContent='Waiting for opponent…'; bar.className='wait'; return;
+  }
+  if(mode==='online'&&cur!==myRole){
+    bar.textContent="Opponent's turn…"; bar.className='wait'; return;
+  }
+  const ms=allMoves(board,cur);
+  const mustCap=ms.some(m=>m.caps.length>0);
+  if(mustCap){bar.textContent=`${cur==='w'?'WHITE':'BLACK'} — CAPTURE REQUIRED!`;bar.className='warn';}
+  else{bar.textContent=`${cur==='w'?'WHITE':'BLACK'}'s turn`;bar.className=cur==='w'?'wt':'bt';}
+}
+
+/* ── Interaction ────────────────────────── */
+function onCell(e){
+  if(over||busy)return;
+  if(mode!=='pvp'&&mode!=='online'&&cur==='b')return;
+  if(mode==='online'&&(!onlineReady||cur!==myRole))return;
+  const r=+e.currentTarget.dataset.r, c=+e.currentTarget.dataset.c;
+  doClick(r,c);
+}
+
+function doClick(r,c){
+  const v=board[r][c];
+  if(selected){
+    const m=moves.find(m=>m.tr===r&&m.tc===c);
+    if(m){doMove(m);return;}
+  }
+  if(owns(v,cur)){
+    const legal=allMoves(board,cur).filter(m=>m.fr===r&&m.fc===c);
+    if(!legal.length){selected=null;moves=[];render();return;}
+    selected={r,c};moves=legal;render();updateUI();return;
+  }
+  selected=null;moves=[];render();updateUI();
+}
+
+/* ── Execute move ───────────────────────── */
+function doMove(m){
+  const piece=board[m.fr][m.fc];
+  board[m.fr][m.fc]=E;
+  m.caps.forEach(p=>{if(isW(board[p.r][p.c]))captured.w++;else captured.b++;board[p.r][p.c]=E;});
+  board[m.tr][m.tc]=piece;
+  if(cur==='w'&&piece===W&&m.tr===0)board[m.tr][m.tc]=WK;
+  if(cur==='b'&&piece===B&&m.tr===7)board[m.tr][m.tc]=BK;
+  lastMove=m; moveNo++;
+  const cL=c=>String.fromCharCode(65+c),rL=r=>8-r;
+  document.getElementById('last-txt').textContent=
+    `${cur==='w'?'WHITE':'BLACK'}: ${cL(m.fc)}${rL(m.fr)}→${cL(m.tc)}${rL(m.tr)}`+(m.caps.length?` (×${m.caps.length})`:'');
+  selected=null;moves=[];
+  render();
+  const dest=$cell(m.tr,m.tc);
+  if(dest?.firstChild){dest.firstChild.classList.add('jm');dest.firstChild.addEventListener('animationend',()=>dest.firstChild?.classList.remove('jm'),{once:true});}
+
+  const w=winCheck(board);
+  if(w){over=true;updateUI();render();
+    if(mode==='online'&&conn)conn.send({type:'state',board,cur,captured,moveNo,lastMove,over:true,winner:w});
+    setTimeout(()=>showWin(w),700);return;
+  }
+
+  if(mode==='online'&&conn) conn.send({type:'state',board,cur:opp(cur),captured,moveNo,lastMove,over:false,winner:null});
+
+  cur=opp(cur); selected=null; moves=[];
+  updateUI(); render();
+  if((mode==='easy'||mode==='hard')&&cur==='b') setTimeout(aiTurn,350);
+}
+
+/* ── AI turn ────────────────────────────── */
+function aiTurn(){
+  if(over)return;
+  busy=true; document.getElementById('ai-think').classList.add('on');
+  setTimeout(()=>{
+    const m=bestAI(board,'b',mode==='hard'?5:2);
+    document.getElementById('ai-think').classList.remove('on'); busy=false;
+    if(m) doMove(m); else{over=true;updateUI();showWin('w');}
+  },40);
+}
+
+/* ── Online / PeerJS ─────────────────────── */
+/* Capacitor (native app) detection — localhost URL'leri gizle */
+const isNativeApp = (
+  typeof window.Capacitor !== 'undefined' ||
+  window.location.href.startsWith('capacitor://') ||
+  window.location.href.startsWith('ionic://') ||
+  window.location.hostname === 'localhost'
+);
+
+function generateCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s=''; for(let i=0;i<6;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+function peerId(code){ return 'damav2-'+code.toLowerCase(); }
+
+function createRoom(){
+  cleanPeer();
+  roomCode=generateCode();
+  const el=document.getElementById('room-code-display');
+  el.textContent=roomCode;
+  setCreateStatus('waiting','Waiting for opponent to join…');
+  document.getElementById('copy-btn').style.display='';
+  document.getElementById('gen-btn').textContent='Regenerate';
+  // Native app'te localhost URL'yi gösterme, sadece kodu göster
+  if(!isNativeApp){
+    const url=window.location.origin+window.location.pathname+'#'+roomCode;
+    document.getElementById('share-url').textContent=url;
+    document.getElementById('share-bar').style.display='';
+    history.replaceState(null,'','#'+roomCode);
+  } else {
+    document.getElementById('share-bar').style.display='none';
+  }
+
+  peer=new Peer(peerId(roomCode),{debug:0});
+  peer.on('open',()=>{
+    peer.on('connection',c=>{
+      conn=c;
+      conn.on('open',()=>{
+        conn.send({type:'start',yourRole:'b'});
+        myRole='w'; onlineReady=true;
+        setCreateStatus('ok','Connected! You play as ⬜ White');
+        startOnlineGame();
+      });
+      conn.on('data',handleOnlineData);
+      conn.on('close',handleDisconnect);
+      conn.on('error',()=>handleDisconnect());
+    });
+  });
+  peer.on('error',err=>{
+    if(err.type==='unavailable-id'){createRoom();}// retry with new code
+    else setCreateStatus('err','Error: '+err.message);
+  });
+}
+
+function joinRoom(){
+  const input=document.getElementById('join-input').value.trim().toUpperCase();
+  if(input.length!==6){setJoinStatus('err','Please enter a 6-character code.');return;}
+  cleanPeer();
+  roomCode=input;
+  setJoinStatus('waiting','Connecting…');
+  peer=new Peer({debug:0});
+  peer.on('open',()=>{
+    conn=peer.connect(peerId(roomCode),{reliable:true});
+    conn.on('open',()=>{/* wait for start message */});
+    conn.on('data',d=>{
+      if(d.type==='start'){
+        myRole=d.yourRole; onlineReady=true;
+        setJoinStatus('ok','Connected! You play as '+(myRole==='w'?'⬜ White':'⬛ Black'));
+        startOnlineGame();
+      }else handleOnlineData(d);
+    });
+    conn.on('close',handleDisconnect);
+    conn.on('error',()=>setJoinStatus('err','Could not connect. Check the room code.'));
+  });
+  peer.on('error',err=>setJoinStatus('err','Error: '+err.message));
+  setTimeout(()=>{if(!onlineReady)setJoinStatus('err','Timed out. Is the code correct?');},20000);
+}
+
+function handleOnlineData(d){
+  if(d.type==='state'){
+    board=d.board; cur=d.cur; captured=d.captured; moveNo=d.moveNo; lastMove=d.lastMove; over=d.over;
+    selected=null; moves=[];
+    render(); updateUI();
+    if(d.winner) setTimeout(()=>showWin(d.winner),500);
+  }
+}
+function handleDisconnect(){
+  if(!over){document.getElementById('disc-modal').classList.add('on');}
+  onlineReady=false;
+}
+
+function startOnlineGame(){
+  document.getElementById('lobby').classList.remove('on');
+  document.getElementById('game').classList.add('on');
+  mode='online';
+  init(); buildGrid(); render();
+  // Online badge
+  document.getElementById('online-badge').classList.add('on');
+  document.getElementById('badge-code').textContent=roomCode;
+  document.getElementById('badge-role').textContent=myRole==='w'?'⬜ White':'⬛ Black';
+  // YOU tag
+  document.getElementById('you-w').classList.toggle('on',myRole==='w');
+  document.getElementById('you-b').classList.toggle('on',myRole==='b');
+  updateUI();
+}
+
+/* ── Status helpers ─────────────────────── */
+function setCreateStatus(state,msg){
+  document.getElementById('create-dot').className='dot '+(state==='ok'?'ok':state==='err'?'err':'waiting');
+  document.getElementById('create-msg').textContent=msg;
+}
+function setJoinStatus(state,msg){
+  document.getElementById('join-dot').className='dot '+(state==='ok'?'ok':state==='err'?'err':'waiting');
+  document.getElementById('join-msg').textContent=msg;
+}
+function cleanPeer(){
+  if(conn){try{conn.close();}catch(e){}} conn=null;
+  if(peer){try{peer.destroy();}catch(e){}} peer=null;
+  onlineReady=false;
+}
+
+/* ── Copy helpers ───────────────────────── */
+function copyCode(){
+  navigator.clipboard.writeText(roomCode).then(()=>toast('Room code copied!'));
+}
+function copyURL(){
+  if(isNativeApp){
+    navigator.clipboard.writeText(roomCode).then(()=>toast('Room code copied!'));
+    return;
+  }
+  const url=window.location.origin+window.location.pathname+'#'+roomCode;
+  navigator.clipboard.writeText(url).then(()=>toast('Link copied!'));
+}
+function toast(msg){
+  const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('on');
+  setTimeout(()=>el.classList.remove('on'),2200);
+}
+
+/* ── Win modal ──────────────────────────── */
+function showWin(w){
+  const aiWon=mode==='hard'&&w==='b'||mode==='easy'&&w==='b';
+  const youWon=mode==='online'&&w===myRole;
+  const oppoWon=mode==='online'&&w!==myRole;
+  let title,desc;
+  if(aiWon){title='AI Wins!';desc='Better luck next time!';}
+  else if(youWon){title='You Win! 🎉';desc='Excellent! You beat your opponent!';}
+  else if(oppoWon){title='You Lost';desc='Your opponent won this round.';}
+  else{title=(w==='w'?'White':'Black')+' Wins!';desc='Congratulations on a great game!';}
+  document.getElementById('win-title').textContent=title;
+  document.getElementById('win-desc').textContent=desc;
+  document.getElementById('win-modal').classList.add('on');
+}
+function closeModals(){
+  document.querySelectorAll('.overlay').forEach(el=>el.classList.remove('on'));
+}
+
+/* ── Game flow ──────────────────────────── */
+function startGame(m){
+  mode=m; myRole=null; onlineReady=false;
+  document.getElementById('menu').style.display='none';
+  document.getElementById('online-badge').classList.remove('on');
+  document.getElementById('you-w').classList.remove('on');
+  document.getElementById('you-b').classList.remove('on');
+  document.getElementById('pname-b').textContent=m==='easy'||m==='hard'?'AI':'BLACK';
+  document.getElementById('game').classList.add('on');
+  resetGame();
+}
+
+function resetGame(){
+  closeModals();
+  init(); buildGrid(); render(); updateUI();
+  if((mode==='easy'||mode==='hard')&&cur==='b') setTimeout(aiTurn,500);
+}
+
+function restartGame(){
+  if(mode==='online'&&conn&&onlineReady){
+    conn.send({type:'state',board:initBoardData(),cur:'w',captured:{w:0,b:0},moveNo:0,lastMove:null,over:false,winner:null});
+  }
+  closeModals(); init(); buildGrid(); render(); updateUI();
+}
+
+function initBoardData(){
+  const b=Array.from({length:8},()=>Array(8).fill(E));
+  for(let c=0;c<8;c++){b[1][c]=B;b[2][c]=B;}
+  for(let c=0;c<8;c++){b[5][c]=W;b[6][c]=W;}
+  return b;
+}
+
+function exitGame(){
+  closeModals(); cleanPeer(); over=true; busy=false;
+  document.getElementById('game').classList.remove('on');
+  document.getElementById('lobby').classList.remove('on');
+  document.getElementById('online-badge').classList.remove('on');
+  document.getElementById('menu').style.display='flex';
+  history.replaceState(null,'',window.location.pathname);
+}
+
+function showLobby(){
+  document.getElementById('menu').style.display='none';
+  document.getElementById('lobby').classList.add('on');
+  // Reset lobby state
+  setCreateStatus('','Click "Generate Room" to start');
+  document.getElementById('room-code-display').textContent='——————';
+  document.getElementById('copy-btn').style.display='none';
+  document.getElementById('gen-btn').textContent='Generate Room';
+  document.getElementById('share-bar').style.display='none';
+  document.getElementById('join-input').value='';
+  setJoinStatus('','Enter the 6-character room code');
+  // Auto-fill from URL hash
+  const hash=window.location.hash.slice(1).toUpperCase();
+  if(hash&&hash.length===6){
+    document.getElementById('join-input').value=hash;
+    lobbyTab('join');
+  } else {
+    lobbyTab('create');
+  }
+}
+
+function lobbyTab(tab){
+  document.getElementById('create-tab').style.display=tab==='create'?'':'none';
+  document.getElementById('join-tab').style.display=tab==='join'?'':'none';
+  document.getElementById('tab-create').classList.toggle('active',tab==='create');
+  document.getElementById('tab-join').classList.toggle('active',tab==='join');
+}
+
+function lobbyBack(){
+  cleanPeer();
+  document.getElementById('lobby').classList.remove('on');
+  document.getElementById('menu').style.display='flex';
+  history.replaceState(null,'',window.location.pathname);
+}
+
+/* ── Init ───────────────────────────────── */
+window.addEventListener('load',()=>{
+  buildGrid();
+  // Auto-open lobby if URL has a room code hash
+  const hash=window.location.hash.slice(1).toUpperCase();
+  if(hash&&hash.length===6) showLobby();
+});
+</script>
+</body>
+</html>

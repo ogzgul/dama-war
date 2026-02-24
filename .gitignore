@@ -1,1 +1,30 @@
+# Dependencies
+node_modules/
+mobile/node_modules/
+
+# Build outputs
+mobile/build/
+mobile/ios/App/build/
+mobile/ios/App/.build/
+/tmp/
+
+# Xcode derived data
+mobile/ios/App/DerivedData/
+
+# Signing & certificates (sensitive)
+mobile/ios/App/*.p12
+mobile/ios/App/*.cer
+mobile/ios/App/*.certSigningRequest
+mobile/ios/App/*.mobileprovision
+mobile/ios/App/fastlane/.env
+mobile/ios/App/fastlane/report.xml
+
+# iOS Pods (reproducible via pod install)
+mobile/ios/App/Pods/
+
+# macOS
 .DS_Store
+**/.DS_Store
+
+# Logs
+*.log
