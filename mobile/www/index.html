@@ -257,7 +257,7 @@
       .sbox .val { font-size:22px; }
       .sep { display:none; }
       .info-text { display:none; }
-      #board { --cell:min(54px,calc((100vw - 28px) / 8)); grid-template-columns:repeat(8,var(--cell)); grid-template-rows:repeat(8,var(--cell)); }
+      #board { --cell:min(54px,calc((100vw - 52px) / 8)); grid-template-columns:repeat(8,var(--cell)); grid-template-rows:repeat(8,var(--cell)); }
       .cell { width:var(--cell,54px); height:var(--cell,54px); }
       .piece { width:calc(var(--cell,54px) - 8px); height:calc(var(--cell,54px) - 8px); }
       .piece.king::after { font-size:15px; }
@@ -266,7 +266,7 @@
       .ctrl-btn { width:46px; height:46px; font-size:20px; }
     }
     @media (max-width:400px) {
-      #board { --cell:min(46px,calc((100vw - 20px) / 8)); grid-template-columns:repeat(8,var(--cell)); grid-template-rows:repeat(8,var(--cell)); }
+      #board { --cell:min(46px,calc((100vw - 52px) / 8)); grid-template-columns:repeat(8,var(--cell)); grid-template-rows:repeat(8,var(--cell)); }
       .cell { width:var(--cell,46px); height:var(--cell,46px); }
       .piece { width:calc(var(--cell,46px) - 7px); height:calc(var(--cell,46px) - 7px); }
       .piece.king::after { font-size:13px; }
@@ -596,11 +596,37 @@ function winCheck(b){
 
 /* ── Minimax AI ── */
 function evalB(b){
-  let s=0;
+  let s=0,wCount=0,bCount=0,wMob=0,bMob=0;
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
     const v=b[r][c];
-    if(v===W)s+=10+(6-r)*.3; if(v===WK)s+=22;
-    if(v===B)s-=10+(r-1)*.3; if(v===BK)s-=22;
+    if(v===W){
+      wCount++;
+      s+=10+(6-r)*.5;
+      if(c>=2&&c<=5)s+=1;          // center control
+      if(r===7)s+=1.5;             // back row safety
+    } else if(v===WK){
+      wCount++;
+      s+=28;
+      if(c>=2&&c<=5)s+=2;
+    } else if(v===B){
+      bCount++;
+      s-=10+(r-1)*.5;
+      if(c>=2&&c<=5)s-=1;
+      if(r===0)s-=1.5;
+    } else if(v===BK){
+      bCount++;
+      s-=28;
+      if(c>=2&&c<=5)s-=2;
+    }
+  }
+  // piece count advantage bonus (bigger lead = bigger bonus)
+  const diff=wCount-bCount;
+  s+=diff*3;
+  // mobility
+  if(mode==='hard'){
+    wMob=allMoves(b,'w').length;
+    bMob=allMoves(b,'b').length;
+    s+=(wMob-bMob)*0.3;
   }
   return s;
 }
@@ -622,7 +648,9 @@ function mm(b,d,a,be,max){
 }
 function bestAI(b,pl,depth){
   const ms=allMoves(b,pl); if(!ms.length)return null;
-  ms.sort(()=>Math.random()-.5);
+  if(mode==='easy') ms.sort(()=>Math.random()-.5);
+  else if(mode==='medium'&&Math.random()<0.3) ms.sort(()=>Math.random()-.5);
+  else ms.sort((a,b)=>b.caps.length-a.caps.length); // captures first → better pruning
   let best=pl==='w'?-Infinity:Infinity,bm=ms[0];
   for(const m of ms){
     const nb=deep(b);apply(nb,m,pl);
@@ -958,7 +986,7 @@ function aiTurn(){
   if(over)return;
   busy=true; document.getElementById('ai-think').classList.add('on');
   setTimeout(()=>{
-    const depth=mode==='hard'?5:mode==='medium'?3:2;
+    const depth=mode==='hard'?6:mode==='medium'?4:2;
     const m=bestAI(board,'b',depth);
     document.getElementById('ai-think').classList.remove('on');
     if(m) doMove(m);
