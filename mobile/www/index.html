@@ -620,9 +620,9 @@ const CHALLENGE_LEVELS=[
   {id:5, name:'Intermediate',sub:'Balanced opponent',         icon:'🎯',aiMode:'medium',depth:4,randomChance:.08,timeLimit:null},
   {id:6, name:'Skilled',     sub:'Consistent strong play',    icon:'🔥',aiMode:'hard',  depth:4,randomChance:0,  timeLimit:null},
   {id:7, name:'Expert',      sub:'Tactical mastery',          icon:'🧠',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:null},
-  {id:8, name:'Master',      sub:'Deep calculation',          icon:'💀',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:600},
-  {id:9, name:'Grandmaster', sub:'Near-perfect moves',        icon:'👑',aiMode:'hard',  depth:6,randomChance:0,  timeLimit:800},
-  {id:10,name:'Legend',      sub:'The ultimate challenge',    icon:'⚡',aiMode:'hard',  depth:6,randomChance:0,  timeLimit:1100},
+  {id:8, name:'Master',      sub:'Deep calculation',          icon:'💀',aiMode:'hard',  depth:4,randomChance:0,  timeLimit:null},
+  {id:9, name:'Grandmaster', sub:'Near-perfect moves',        icon:'👑',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:400},
+  {id:10,name:'Legend',      sub:'The ultimate challenge',    icon:'⚡',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:550},
 ];
 function loadChallengeProgress(){
   try{challengeUnlocked=parseInt(localStorage.getItem('dama_ch_lvl')||'1');}catch(e){challengeUnlocked=1;}
@@ -757,6 +757,7 @@ function mm(b,d,a,be,max){
   if(d===0)return evalB(b);
   var pl=max?'w':'b',ms=allMoves(b,pl);
   if(!ms.length)return max?-8000:8000;
+  if(ms.length>1)ms.sort(function(x,y){return y.caps.length-x.caps.length;});
   if(max){var best=-Infinity;for(var i=0;i<ms.length;i++){var nb=deep(b);applyM(nb,ms[i],pl);best=Math.max(best,mm(nb,d-1,a,be,false));a=Math.max(a,best);if(be<=a)break;}return best;}
   else{var best=Infinity;for(var i=0;i<ms.length;i++){var nb=deep(b);applyM(nb,ms[i],pl);best=Math.min(best,mm(nb,d-1,a,be,true));be=Math.min(be,best);if(be<=a)break;}return best;}
 }
@@ -791,7 +792,7 @@ onmessage=function(e){
   postMessage(result);
 };
 `;
-let _aiWorker=null;
+let _aiWorker=null,_aiThinkTimer=null;
 function initAIWorker(){
   if(_aiWorker)return;
   try{
@@ -799,17 +800,18 @@ function initAIWorker(){
     const url=URL.createObjectURL(blob);
     _aiWorker=new Worker(url);
     _aiWorker.onmessage=function(e){
-      const m=e.data;
+      if(_aiThinkTimer){clearTimeout(_aiThinkTimer);_aiThinkTimer=null;}
       document.getElementById('ai-think').classList.remove('on');
       if(over||!busy){busy=false;return;}
+      const m=e.data;
       if(m)doMove(m);
       else{busy=false;over=true;updateUI();showWin('w');}
     };
     _aiWorker.onerror=function(err){
-      console.warn('AI Worker error, falling back to sync',err);
+      if(_aiThinkTimer){clearTimeout(_aiThinkTimer);_aiThinkTimer=null;}
       document.getElementById('ai-think').classList.remove('on');
       if(over){busy=false;return;}
-      const depth=mode==='hard'||inChallenge?6:mode==='medium'?4:2;
+      const depth=mode==='hard'||inChallenge?4:mode==='medium'?3:2;
       const m=bestAI(board,'b',depth);
       if(m)doMove(m);else{busy=false;over=true;updateUI();showWin('w');}
     };
@@ -1316,7 +1318,8 @@ function doMove(m){
 function aiTurn(){
   if(over)return;
   busy=true;
-  document.getElementById('ai-think').classList.add('on');
+  // Show spinner only if thinking takes >200ms (avoids flash for fast moves)
+  _aiThinkTimer=setTimeout(()=>{_aiThinkTimer=null;if(busy)document.getElementById('ai-think').classList.add('on');},200);
   initAIWorker();
   let aiMode,depth,randomChance,timeLimit;
   if(inChallenge){
@@ -1324,9 +1327,9 @@ function aiTurn(){
     aiMode=lvl.aiMode;depth=lvl.depth;randomChance=lvl.randomChance;timeLimit=lvl.timeLimit;
   }else{
     aiMode=mode;
-    depth=mode==='hard'?6:mode==='medium'?4:2;
+    depth=mode==='hard'?4:mode==='medium'?3:2;
     randomChance=mode==='easy'?0.38:0;
-    timeLimit=mode==='hard'?700:mode==='medium'?450:null;
+    timeLimit=null;
   }
   if(_aiWorker){
     _aiWorker.postMessage({board,aiMode,depth,randomChance,timeLimit});
