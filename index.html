@@ -852,7 +852,7 @@ function animateMoveSteps(fr,fc,path,caps,pieceClass,callback){
   floater.offsetWidth; // reflow
 
   let step=0;
-  const STEP_MS=320; // ms per hop
+  const STEP_MS=700; // ms per hop
 
   function doStep(){
     if(step>=path.length){
@@ -897,7 +897,7 @@ function animateMoveSteps(fr,fc,path,caps,pieceClass,callback){
       }
       step++;
       // Pause between steps if there's another capture
-      setTimeout(doStep, cap?260:40);
+      setTimeout(doStep, cap?500:80);
     }
     floater.addEventListener('transitionend',stepDone,{once:true});
     setTimeout(stepDone,STEP_MS+120); // fallback
@@ -1086,7 +1086,7 @@ function doMove(m){
     if(isAI&&cur==='w') showYourTurn();
     if(mode==='online'&&cur===myRole) showYourTurn();
 
-    if(isAI&&cur==='b') setTimeout(aiTurn,40);
+    if(isAI&&cur==='b') setTimeout(aiTurn,150);
     if(mode==='blitz'&&!over) startBlitzTimer();
   });
 }
@@ -1102,8 +1102,8 @@ function aiTurn(){
     const lvl=CHALLENGE_LEVELS[challengeLevel-1];
     depth=lvl.depth;randomChance=lvl.randomChance;
   }else{
-    depth=mode==='hard'?4:mode==='medium'?3:2;
-    randomChance=mode==='easy'?0.38:0;
+    depth=mode==='hard'?5:mode==='medium'?4:2;
+    randomChance=mode==='easy'?0.38:mode==='medium'?0.12:0;
   }
   setTimeout(()=>{
     const m=bestAI(board,'b',depth,randomChance);

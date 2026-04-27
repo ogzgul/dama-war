@@ -18,11 +18,12 @@
     }
     body {
       font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text);
-      min-height: 100vh; display: flex; flex-direction: column; align-items: center;
-      padding: calc(20px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom));
+      height: 100vh; height: 100svh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: calc(20px + env(safe-area-inset-top)) 16px 0;
       padding-left: max(16px, env(safe-area-inset-left));
       padding-right: max(16px, env(safe-area-inset-right));
-      overflow-x: hidden; overflow-y: auto;
+      overflow: hidden;
       -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none;
     }
     body::before {
@@ -41,7 +42,7 @@
     .card h2 { font-family:'Cinzel',serif; font-size:18px; color:var(--gold); margin-bottom:18px; text-align:center; }
 
     /* ── Menu ── */
-    #menu { display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:380px; }
+    #menu { display:flex; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:380px; flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:16px; }
     .mbtn {
       display:flex; align-items:center; gap:14px; width:100%; background:var(--sf2);
       border:1px solid var(--bd); border-radius:10px; padding:15px 18px; margin-bottom:10px;
@@ -74,8 +75,8 @@
     }
 
     /* ── Lobby ── */
-    #lobby { display:none; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:420px; }
-    #lobby.on { display:flex; }
+    #lobby { display:none; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:420px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    #lobby.on { display:flex; flex:1; min-height:0; }
     .ltabs { display:flex; border:1px solid var(--bd); border-radius:8px; overflow:hidden; width:100%; }
     .ltab { flex:1; padding:11px; background:var(--sf2); border:none; color:var(--muted); font-size:13px; font-weight:600; font-family:inherit; cursor:pointer; transition:background .2s,color .2s; }
     .ltab.active { background:rgba(212,168,67,.12); color:var(--gold); }
@@ -262,7 +263,7 @@
 
     /* ── Responsive ── */
     @media (max-width:780px) {
-      body { padding-top:calc(12px + env(safe-area-inset-top)); padding-bottom:calc(24px + env(safe-area-inset-bottom)); }
+      body { padding-top:calc(12px + env(safe-area-inset-top)); }
       header { margin-bottom:12px; }
       header h1 { font-size:clamp(22px,6vw,36px); }
       #game { flex-direction:column; align-items:center; gap:10px; }
@@ -290,7 +291,7 @@
 
     /* ── Ultra-compact for iPhone 8 / small phones (≤430px wide) ── */
     @media (max-width:430px) {
-      body { padding-top:calc(6px + env(safe-area-inset-top)); padding-bottom:calc(10px + env(safe-area-inset-bottom)); }
+      body { padding-top:calc(6px + env(safe-area-inset-top)); }
       header { margin-bottom:4px; }
       header h1 { font-size:clamp(18px,6vw,22px); }
       header p { display:none; }
@@ -316,8 +317,7 @@
     #challenge-screen {
       display:none; flex-direction:column; align-items:center; gap:12px;
       width:100%; max-width:420px;
-      height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 80px);
-      max-height:calc(100vh - 80px);
+      flex:1; min-height:0; overflow:hidden;
     }
     .mbtn.challenge-btn { border-color:rgba(255,160,50,.3); }
     .mbtn.challenge-btn:hover { border-color:#f8a628; background:rgba(255,160,50,.07); }
@@ -344,6 +344,13 @@
       .clevel-ico { font-size:22px; width:30px; }
       .clevel-inf strong { font-size:13px; }
     }
+
+    /* ── Ad footer — permanent bottom slot for native banner ── */
+    #ad-footer {
+      width: 100%; flex-shrink: 0;
+      height: calc(60px + env(safe-area-inset-bottom));
+      display: none; /* shown by JS when AdMob banner is active */
+    }
   </style>
 </head>
 <body>
@@ -351,7 +358,7 @@
 <header><h1>DAMA</h1><p>Turkish Checkers</p></header>
 
 <!-- MENU -->
-<div id="menu" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:380px;">
+<div id="menu">
   <div class="card">
     <h2>Select Game Mode</h2>
     <button class="mbtn" onclick="startGame('pvp')">
@@ -382,8 +389,6 @@
     Chain captures <b>mandatory</b> · Kings slide <b>any distance</b>
   </div>
 
-  <!-- AdMob banner shown by native SDK -->
-  <div id="admob-banner-spacer" style="height:60px;display:none;"></div>
 </div>
 
 <!-- CHALLENGE SCREEN -->
@@ -620,7 +625,7 @@ const CHALLENGE_LEVELS=[
   {id:5, name:'Intermediate',sub:'Balanced opponent',         icon:'🎯',aiMode:'medium',depth:4,randomChance:.08,timeLimit:null},
   {id:6, name:'Skilled',     sub:'Consistent strong play',    icon:'🔥',aiMode:'hard',  depth:4,randomChance:0,  timeLimit:null},
   {id:7, name:'Expert',      sub:'Tactical mastery',          icon:'🧠',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:null},
-  {id:8, name:'Master',      sub:'Deep calculation',          icon:'💀',aiMode:'hard',  depth:4,randomChance:0,  timeLimit:null},
+  {id:8, name:'Master',      sub:'Deep calculation',          icon:'💀',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:null},
   {id:9, name:'Grandmaster', sub:'Near-perfect moves',        icon:'👑',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:400},
   {id:10,name:'Legend',      sub:'The ultimate challenge',    icon:'⚡',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:550},
 ];
@@ -967,7 +972,7 @@ function mm(b,d,a,be,max){
 function bestAI(b,pl,depth){
   const ms=allMoves(b,pl); if(!ms.length)return null;
   if(mode==='easy') ms.sort(()=>Math.random()-.5);
-  else if(mode==='medium'&&Math.random()<0.3) ms.sort(()=>Math.random()-.5);
+  else if(mode==='medium'&&Math.random()<0.1) ms.sort(()=>Math.random()-.5);
   else ms.sort((a,b)=>b.caps.length-a.caps.length); // captures first → better pruning
   let best=pl==='w'?-Infinity:Infinity,bm=ms[0];
   for(const m of ms){
@@ -1075,7 +1080,7 @@ function animateMoveSteps(fr,fc,path,caps,pieceClass,callback){
   floater.offsetWidth; // reflow
 
   let step=0;
-  const STEP_MS=320; // ms per hop
+  const STEP_MS=700; // ms per hop
 
   function doStep(){
     if(step>=path.length){
@@ -1120,7 +1125,7 @@ function animateMoveSteps(fr,fc,path,caps,pieceClass,callback){
       }
       step++;
       // Pause between steps if there's another capture
-      setTimeout(doStep, cap?260:40);
+      setTimeout(doStep, cap?500:80);
     }
     floater.addEventListener('transitionend',stepDone,{once:true});
     setTimeout(stepDone,STEP_MS+120); // fallback
@@ -1309,7 +1314,7 @@ function doMove(m){
     if(isAI&&cur==='w') showYourTurn();
     if(mode==='online'&&cur===myRole) showYourTurn();
 
-    if(isAI&&cur==='b') setTimeout(aiTurn,40);
+    if(isAI&&cur==='b') setTimeout(aiTurn,150);
     if(mode==='blitz'&&!over) startBlitzTimer();
   });
 }
@@ -1327,8 +1332,8 @@ function aiTurn(){
     aiMode=lvl.aiMode;depth=lvl.depth;randomChance=lvl.randomChance;timeLimit=lvl.timeLimit;
   }else{
     aiMode=mode;
-    depth=mode==='hard'?4:mode==='medium'?3:2;
-    randomChance=mode==='easy'?0.38:0;
+    depth=mode==='hard'?5:mode==='medium'?4:2;
+    randomChance=mode==='easy'?0.38:mode==='medium'?0.12:0;
     timeLimit=null;
   }
   if(_aiWorker){
@@ -1612,7 +1617,7 @@ function closeModals(){
 
 /* ── Game flow ── */
 function startGame(m){
-  hideMenuBanner(); prepareInterstitial();
+  prepareInterstitial(); showMenuBanner();
   mode=m;myRole=null;onlineReady=false;
   document.getElementById('menu').style.display='none';
   document.getElementById('challenge-screen').style.display='none';
@@ -1695,7 +1700,6 @@ function lobbyBack(){
 
 /* ── Challenge mode functions ── */
 function showChallengeScreen(){
-  hideMenuBanner();
   document.getElementById('menu').style.display='none';
   const el=document.getElementById('challenge-screen');
   el.style.display='flex';
@@ -1795,7 +1799,7 @@ async function showMenuBanner(){
       margin:0,
       isTesting:false
     });
-    document.getElementById('admob-banner-spacer').style.display='block';
+    document.getElementById('ad-footer').style.display='block';
   }catch(e){console.warn('AdMob banner error',e);}
 }
 
@@ -1803,7 +1807,7 @@ async function hideMenuBanner(){
   if(!_adMob)return;
   try{
     await _adMob.hideBanner();
-    document.getElementById('admob-banner-spacer').style.display='none';
+    document.getElementById('ad-footer').style.display='none';
   }catch(e){}
 }
 
@@ -1828,5 +1832,7 @@ async function showInterstitialThenRun(fn){
 }
 </script>
 <script src="admob-plugin.js"></script>
+<!-- Permanent bottom slot — native AdMob banner overlays this area -->
+<div id="ad-footer"></div>
 </body>
 </html>
