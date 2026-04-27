@@ -288,7 +288,12 @@
     }
 
     /* ── Challenge Screen ── */
-    #challenge-screen { display:none; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:420px; }
+    #challenge-screen {
+      display:none; flex-direction:column; align-items:center; gap:12px;
+      width:100%; max-width:420px;
+      height:calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 80px);
+      max-height:calc(100vh - 80px);
+    }
     .mbtn.challenge-btn { border-color:rgba(255,160,50,.3); }
     .mbtn.challenge-btn:hover { border-color:#f8a628; background:rgba(255,160,50,.07); }
     .clevel { display:flex; align-items:center; gap:12px; width:100%; background:var(--sf2); border:1px solid var(--bd); border-radius:10px; padding:15px 16px; cursor:not-allowed; opacity:.35; transition:border-color .2s,background .2s,transform .12s; -webkit-tap-highlight-color:transparent; }
@@ -353,12 +358,15 @@
 
 <!-- CHALLENGE SCREEN -->
 <div id="challenge-screen">
-  <div class="card" style="max-width:420px;width:100%;">
-    <h2>⚔️ Challenge Mode</h2>
+  <div style="display:flex;align-items:center;width:100%;max-width:420px;gap:12px;flex-shrink:0;">
+    <button class="gbtn danger" style="flex-shrink:0;padding:10px 16px;" onclick="backFromChallenge()">← Back</button>
+    <span style="flex:1;text-align:center;font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:var(--gold);">⚔️ Challenge Mode</span>
+    <div style="width:70px;flex-shrink:0;"></div>
+  </div>
+  <div class="card" style="max-width:420px;width:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0;">
     <div class="level-dots" id="challenge-dots"></div>
     <div id="challenge-levels-list" style="display:flex;flex-direction:column;gap:10px;width:100%;"></div>
   </div>
-  <button class="gbtn danger" style="width:100%;max-width:420px;" onclick="backFromChallenge()">← Back</button>
 </div>
 
 <!-- LOBBY -->
@@ -1091,7 +1099,7 @@ function aiTurn(){
     const lvl=CHALLENGE_LEVELS[challengeLevel-1];
     depth=lvl.depth;randomChance=lvl.randomChance;
   }else{
-    depth=mode==='hard'?5:mode==='medium'?4:2;
+    depth=mode==='hard'?6:mode==='medium'?4:2;
     randomChance=mode==='easy'?0.38:0;
   }
   setTimeout(()=>{
