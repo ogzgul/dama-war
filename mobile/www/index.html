@@ -288,6 +288,30 @@
       .piece.king::after { font-size:13px; }
     }
 
+    /* ── Ultra-compact for iPhone 8 / small phones (≤430px wide) ── */
+    @media (max-width:430px) {
+      body { padding-top:calc(6px + env(safe-area-inset-top)); padding-bottom:calc(10px + env(safe-area-inset-bottom)); }
+      header { margin-bottom:4px; }
+      header h1 { font-size:clamp(18px,6vw,22px); }
+      header p { display:none; }
+      #game { gap:5px; }
+      .panel { padding:4px 8px; gap:6px; }
+      .pcard { flex-direction:row; align-items:center; gap:6px; padding:4px 8px; min-width:0; }
+      .pip { width:20px; height:20px; border-width:2px; }
+      .pname { font-size:9px; }
+      .sbox,.caps-row,.ti,.mc,.you-tag { display:none !important; }
+      #board-container { gap:4px; }
+      #status-bar { padding:5px 10px; font-size:11px; }
+      #board-wrap { padding:7px; }
+      #board { --cell:calc((100vw - 46px) / 8); grid-template-columns:repeat(8,var(--cell)); grid-template-rows:repeat(8,var(--cell)); }
+      .cell { width:var(--cell); height:var(--cell); }
+      .piece { width:calc(var(--cell) - 5px); height:calc(var(--cell) - 5px); }
+      .piece.king::after { font-size:11px; }
+      #game-controls { gap:7px; margin-top:4px; }
+      .ctrl-btn { width:36px; height:36px; font-size:16px; }
+      #blitz-bar-wrap { margin-top:-2px; }
+    }
+
     /* ── Challenge Screen ── */
     #challenge-screen { display:none; flex-direction:column; align-items:center; gap:14px; width:100%; max-width:420px; }
     .mbtn.challenge-btn { border-color:rgba(255,160,50,.3); }
@@ -304,7 +328,7 @@
     .clevel-status { font-size:16px; flex-shrink:0; min-width:22px; text-align:center; }
     .clevel.beaten { border-color:rgba(63,185,80,.25); }
     .clevel.beaten .clevel-status { color:var(--green); }
-    .level-dots { display:flex; gap:8px; justify-content:center; margin:4px 0 14px; }
+    .level-dots { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin:4px 0 14px; }
     .ldot { width:13px; height:13px; border-radius:50%; background:var(--bd); transition:background .3s; }
     .ldot.done { background:var(--green); }
     .ldot.current { background:var(--gold); box-shadow:0 0 6px rgba(212,168,67,.6); }
@@ -338,7 +362,7 @@
       <span class="ico">🧠</span><span class="inf"><strong>vs AI — Hard</strong><span id="lbl-hard">Challenging AI</span></span>
     </button>
     <button class="mbtn challenge-btn" onclick="showChallengeScreen()">
-      <span class="ico">⚔️</span><span class="inf"><strong>Challenge Mode</strong><span>5 levels — increasing difficulty</span></span>
+      <span class="ico">⚔️</span><span class="inf"><strong>Challenge Mode</strong><span>10 levels — increasing difficulty</span></span>
     </button>
     <button class="mbtn blitz-btn" id="btn-blitz" onclick="showBlitzPicker()">
       <span class="ico">⚡</span><span class="inf"><strong>Blitz Mode</strong><span id="lbl-blitz">Timed PvP — each move has a clock</span></span>
@@ -511,9 +535,9 @@
     <h2>Blitz Mode</h2>
     <p>Choose seconds per move. Clock runs out → you lose!</p>
     <div class="time-opts">
-      <button class="topt" data-sec="10" onclick="selectBlitzTime(10)">10<span>seconds</span></button>
-      <button class="topt sel" data-sec="15" onclick="selectBlitzTime(15)">15<span>seconds</span></button>
-      <button class="topt" data-sec="30" onclick="selectBlitzTime(30)">30<span>seconds</span></button>
+      <button class="topt" data-sec="5" onclick="selectBlitzTime(5)">5<span>seconds</span></button>
+      <button class="topt sel" data-sec="10" onclick="selectBlitzTime(10)">10<span>seconds</span></button>
+      <button class="topt" data-sec="15" onclick="selectBlitzTime(15)">15<span>seconds</span></button>
     </div>
     <div class="mbtns"><button class="btn-s" onclick="closeModals()">Cancel</button></div>
   </div>
@@ -539,8 +563,9 @@
   <div class="modal">
     <div class="mico">👑</div>
     <h2>All Levels Cleared!</h2>
-    <p>Congratulations! You've conquered all 5 Challenge levels. You're a legend!</p>
+    <p>Congratulations! You've conquered all 10 Challenge levels. You're a legend!</p>
     <div class="level-dots" style="margin-bottom:20px;">
+      <div class="ldot done"></div><div class="ldot done"></div><div class="ldot done"></div><div class="ldot done"></div><div class="ldot done"></div>
       <div class="ldot done"></div><div class="ldot done"></div><div class="ldot done"></div><div class="ldot done"></div><div class="ldot done"></div>
     </div>
     <div class="mbtns">
@@ -575,24 +600,29 @@ let peer=null,conn=null,myRole=null,roomCode='',onlineReady=false,peerKeepalive=
 let undoStack=[],undoCount=3;
 
 /* ── Blitz state ── */
-let blitzTime=15,blitzTimer=null;
+let blitzTime=10,blitzTimer=null;
 
 /* ── Challenge state ── */
 let challengeLevel=1,inChallenge=false,challengeUnlocked=1;
 const CHALLENGE_LEVELS=[
-  {id:1,name:'Beginner',    sub:'Easy opponent',   icon:'🌱',aiMode:'easy',  depth:2,randomChance:.65,timeLimit:null},
-  {id:2,name:'Intermediate',sub:'Balanced opponent',icon:'⚔️',aiMode:'medium',depth:3,randomChance:.15,timeLimit:null},
-  {id:3,name:'Hard',        sub:'Strong opponent',  icon:'🔥',aiMode:'hard',  depth:4,randomChance:0,  timeLimit:null},
-  {id:4,name:'Expert',      sub:'Master opponent',  icon:'💀',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:null},
-  {id:5,name:'Legend',      sub:'Maximum power',    icon:'👑',aiMode:'hard',  depth:6,randomChance:0,  timeLimit:800},
+  {id:1, name:'Novice',      sub:'Learn the moves',           icon:'🌱',aiMode:'easy',  depth:1,randomChance:.90,timeLimit:null},
+  {id:2, name:'Beginner',    sub:'Very easy opponent',        icon:'🐣',aiMode:'easy',  depth:2,randomChance:.70,timeLimit:null},
+  {id:3, name:'Casual',      sub:'Relaxed challenge',         icon:'🎮',aiMode:'easy',  depth:2,randomChance:.40,timeLimit:null},
+  {id:4, name:'Amateur',     sub:'Starting to think ahead',   icon:'⚔️',aiMode:'medium',depth:3,randomChance:.20,timeLimit:null},
+  {id:5, name:'Intermediate',sub:'Balanced opponent',         icon:'🎯',aiMode:'medium',depth:4,randomChance:.08,timeLimit:null},
+  {id:6, name:'Skilled',     sub:'Consistent strong play',    icon:'🔥',aiMode:'hard',  depth:4,randomChance:0,  timeLimit:null},
+  {id:7, name:'Expert',      sub:'Tactical mastery',          icon:'🧠',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:null},
+  {id:8, name:'Master',      sub:'Deep calculation',          icon:'💀',aiMode:'hard',  depth:5,randomChance:0,  timeLimit:600},
+  {id:9, name:'Grandmaster', sub:'Near-perfect moves',        icon:'👑',aiMode:'hard',  depth:6,randomChance:0,  timeLimit:800},
+  {id:10,name:'Legend',      sub:'The ultimate challenge',    icon:'⚡',aiMode:'hard',  depth:6,randomChance:0,  timeLimit:1100},
 ];
 function loadChallengeProgress(){
   try{challengeUnlocked=parseInt(localStorage.getItem('dama_ch_lvl')||'1');}catch(e){challengeUnlocked=1;}
   if(challengeUnlocked<1)challengeUnlocked=1;
-  if(challengeUnlocked>5)challengeUnlocked=5;
+  if(challengeUnlocked>10)challengeUnlocked=10;
 }
 function saveChallengeProgress(level){
-  try{if(level+1>challengeUnlocked){challengeUnlocked=Math.min(level+1,5);localStorage.setItem('dama_ch_lvl',challengeUnlocked);}}catch(e){}
+  try{if(level+1>challengeUnlocked){challengeUnlocked=Math.min(level+1,10);localStorage.setItem('dama_ch_lvl',challengeUnlocked);}}catch(e){}
 }
 
 /* ── AI Web Worker (inline blob) — prevents UI freeze ── */
@@ -683,13 +713,34 @@ function evalB(b){
   var s=0,wCount=0,bCount=0,wMob=0,bMob=0;
   for(var r=0;r<8;r++)for(var c=0;c<8;c++){
     var v=b[r][c];
-    if(v===W){wCount++;s+=10+(6-r)*.5;if(c>=2&&c<=5)s+=1;if(r===7)s+=1.5;}
-    else if(v===WK){wCount++;s+=28;if(c>=2&&c<=5)s+=2;}
-    else if(v===B){bCount++;s-=10+(r-1)*.5;if(c>=2&&c<=5)s-=1;if(r===0)s-=1.5;}
-    else if(v===BK){bCount++;s-=28;if(c>=2&&c<=5)s-=2;}
+    if(v===W){
+      wCount++;
+      s+=10+(6-r)*1.2;
+      if(c>=2&&c<=5)s+=2;
+      if(r===7)s+=3;
+      if(c===0||c===7)s-=1.5;
+      if(r===1)s+=5;
+    } else if(v===WK){
+      wCount++;
+      s+=32;
+      if(c>=2&&c<=5)s+=3;
+      if(c===0||c===7)s-=2;
+    } else if(v===B){
+      bCount++;
+      s-=10+(r-1)*1.2;
+      if(c>=2&&c<=5)s-=2;
+      if(r===0)s-=3;
+      if(c===0||c===7)s+=1.5;
+      if(r===6)s-=5;
+    } else if(v===BK){
+      bCount++;
+      s-=32;
+      if(c>=2&&c<=5)s-=3;
+      if(c===0||c===7)s+=2;
+    }
   }
-  s+=(wCount-bCount)*3;
-  if(workerMode==='hard'){wMob=allMoves(b,'w').length;bMob=allMoves(b,'b').length;s+=(wMob-bMob)*0.3;}
+  s+=(wCount-bCount)*6;
+  if(workerMode==='hard'||workerMode==='medium'){wMob=allMoves(b,'w').length;bMob=allMoves(b,'b').length;s+=(wMob-bMob)*0.6;}
   return s;
 }
 function mm(b,d,a,be,max){
@@ -704,7 +755,7 @@ function mm(b,d,a,be,max){
 function bestAIWorker(b,pl,depth,randomChance){
   var ms=allMoves(b,pl);if(!ms.length)return null;
   if(randomChance&&Math.random()<randomChance){ms.sort(function(){return Math.random()-.5;});return ms[0];}
-  ms.sort(function(a,b){return b.caps.length-a.caps.length;});
+  ms.sort(function(a,b){return b.caps.length===a.caps.length?(Math.random()-.5):b.caps.length-a.caps.length;});
   var best=pl==='w'?-Infinity:Infinity,bm=ms[0];
   for(var i=0;i<ms.length;i++){
     var nb=deep(b);applyM(nb,ms[i],pl);
@@ -870,33 +921,20 @@ function evalB(b){
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
     const v=b[r][c];
     if(v===W){
-      wCount++;
-      s+=10+(6-r)*.5;
-      if(c>=2&&c<=5)s+=1;          // center control
-      if(r===7)s+=1.5;             // back row safety
+      wCount++;s+=10+(6-r)*1.2;
+      if(c>=2&&c<=5)s+=2;if(r===7)s+=3;if(c===0||c===7)s-=1.5;if(r===1)s+=5;
     } else if(v===WK){
-      wCount++;
-      s+=28;
-      if(c>=2&&c<=5)s+=2;
+      wCount++;s+=32;if(c>=2&&c<=5)s+=3;if(c===0||c===7)s-=2;
     } else if(v===B){
-      bCount++;
-      s-=10+(r-1)*.5;
-      if(c>=2&&c<=5)s-=1;
-      if(r===0)s-=1.5;
+      bCount++;s-=10+(r-1)*1.2;
+      if(c>=2&&c<=5)s-=2;if(r===0)s-=3;if(c===0||c===7)s+=1.5;if(r===6)s-=5;
     } else if(v===BK){
-      bCount++;
-      s-=28;
-      if(c>=2&&c<=5)s-=2;
+      bCount++;s-=32;if(c>=2&&c<=5)s-=3;if(c===0||c===7)s+=2;
     }
   }
-  // piece count advantage bonus (bigger lead = bigger bonus)
-  const diff=wCount-bCount;
-  s+=diff*3;
-  // mobility
-  if(mode==='hard'){
-    wMob=allMoves(b,'w').length;
-    bMob=allMoves(b,'b').length;
-    s+=(wMob-bMob)*0.3;
+  s+=(wCount-bCount)*6;
+  if(mode==='hard'||mode==='medium'||inChallenge){
+    wMob=allMoves(b,'w').length;bMob=allMoves(b,'b').length;s+=(wMob-bMob)*0.6;
   }
   return s;
 }
@@ -1027,7 +1065,7 @@ function animateMoveSteps(fr,fc,path,caps,pieceClass,callback){
   floater.offsetWidth; // reflow
 
   let step=0;
-  const STEP_MS=680; // ms per hop
+  const STEP_MS=320; // ms per hop
 
   function doStep(){
     if(step>=path.length){
@@ -1247,7 +1285,7 @@ function doMove(m){
     if(isAI&&cur==='w') showYourTurn();
     if(mode==='online'&&cur===myRole) showYourTurn();
 
-    if(isAI&&cur==='b') setTimeout(aiTurn,80);
+    if(isAI&&cur==='b') setTimeout(aiTurn,40);
     if(mode==='blitz'&&!over) startBlitzTimer();
   });
 }
@@ -1264,9 +1302,9 @@ function aiTurn(){
     aiMode=lvl.aiMode;depth=lvl.depth;randomChance=lvl.randomChance;timeLimit=lvl.timeLimit;
   }else{
     aiMode=mode;
-    depth=mode==='hard'?4:mode==='medium'?4:2;
-    randomChance=mode==='easy'?0.55:mode==='medium'?0.05:0;
-    timeLimit=null; // no delay — always instant
+    depth=mode==='hard'?5:mode==='medium'?4:2;
+    randomChance=mode==='easy'?0.38:0;
+    timeLimit=mode==='hard'?750:mode==='medium'?450:null;
   }
   if(_aiWorker){
     _aiWorker.postMessage({board,aiMode,depth,randomChance,timeLimit});
@@ -1510,10 +1548,10 @@ function showWin(w){
   if(inChallenge){
     if(w==='w'){
       saveChallengeProgress(challengeLevel);
-      if(challengeLevel<5){
+      if(challengeLevel<10){
         // Build dots
         const dots=document.getElementById('cwm-dots');dots.innerHTML='';
-        for(let i=1;i<=5;i++){const d=document.createElement('div');d.className='ldot'+(i<challengeLevel?' done':i===challengeLevel?' current':'');dots.appendChild(d);}
+        for(let i=1;i<=10;i++){const d=document.createElement('div');d.className='ldot'+(i<challengeLevel?' done':i===challengeLevel?' current':'');dots.appendChild(d);}
         const nextLvl=CHALLENGE_LEVELS[challengeLevel];
         document.getElementById('cwm-title').textContent=`Level ${challengeLevel} Complete! 🎉`;
         document.getElementById('cwm-desc').textContent=`Next up: ${nextLvl.name} — ${nextLvl.sub}`;
@@ -1646,7 +1684,7 @@ function backFromChallenge(){
 function renderChallengeLevels(){
   const dots=document.getElementById('challenge-dots');
   dots.innerHTML='';
-  for(let i=1;i<=5;i++){
+  for(let i=1;i<=10;i++){
     const d=document.createElement('div');
     d.className='ldot'+(i<challengeUnlocked?' done':i===challengeUnlocked?' current':'');
     dots.appendChild(d);
@@ -1675,7 +1713,7 @@ function startChallengeLevel(level){
 function advanceChallenge(){
   closeModals();
   const nextLevel=challengeLevel+1;
-  if(nextLevel>5){exitChallenge();return;}
+  if(nextLevel>10){exitChallenge();return;}
   showInterstitialThenRun(()=>startChallengeLevel(nextLevel));
 }
 function exitChallenge(){
