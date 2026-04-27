@@ -1140,7 +1140,21 @@ function askRestart(){
   showConfirm('↺','Restart Game?','Current game will be reset. Continue?',restartGame);
 }
 function askExit(){
-  showConfirm('🏠','Back to Menu?','Your game progress will be lost. Are you sure?',exitGame);
+  if(inChallenge){
+    showConfirm('⚔️','Back to Levels?','This level\'s progress will be lost.',backToChallengeScreen);
+  }else{
+    showConfirm('🏠','Back to Menu?','Your game progress will be lost. Are you sure?',exitGame);
+  }
+}
+function backToChallengeScreen(){
+  closeModals();clearBlitzTimer();
+  over=true;busy=false;inChallenge=false;
+  document.getElementById('game').classList.remove('on');
+  document.getElementById('challenge-badge').classList.remove('on');
+  document.getElementById('menu').style.display='none';
+  const el=document.getElementById('challenge-screen');
+  el.style.display='flex';
+  renderChallengeLevels();
 }
 
 /* ── Undo ── */
